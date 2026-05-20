@@ -21,16 +21,16 @@ const gravity = 0.84;
 const baseJumpForce = -13.2;
 
 const STAGES = [
-  { name: "Sunny Trail", targetScore: 90, startSpeed: 3.2, accel: 0.0008, spawn: 62, boss: false },
-  { name: "Dry Plains", targetScore: 120, startSpeed: 3.5, accel: 0.0009, spawn: 60, boss: false },
-  { name: "Rock Dust", targetScore: 150, startSpeed: 3.8, accel: 0.0010, spawn: 57, boss: false },
-  { name: "Windy Ridge", targetScore: 185, startSpeed: 4.1, accel: 0.0011, spawn: 55, boss: false },
-  { name: "Boss: Thorn Lord", targetScore: 230, startSpeed: 4.2, accel: 0.0012, spawn: 52, boss: true },
-  { name: "Sunset Dunes", targetScore: 275, startSpeed: 4.5, accel: 0.0013, spawn: 49, boss: false },
-  { name: "Wild Barrens", targetScore: 320, startSpeed: 4.8, accel: 0.00135, spawn: 47, boss: false },
-  { name: "Storm Flats", targetScore: 365, startSpeed: 5.1, accel: 0.0014, spawn: 45, boss: false },
-  { name: "Night Canyons", targetScore: 420, startSpeed: 5.3, accel: 0.00145, spawn: 43, boss: false },
-  { name: "Final Boss: Cactus King", targetScore: 480, startSpeed: 5.6, accel: 0.00155, spawn: 40, boss: true },
+  { name: "Sunny Trail", targetScore: 90, startSpeed: 3.0, accel: 0.00065, spawn: 80, boss: false },
+  { name: "Dry Plains", targetScore: 120, startSpeed: 3.3, accel: 0.00075, spawn: 76, boss: false },
+  { name: "Rock Dust", targetScore: 150, startSpeed: 3.6, accel: 0.00085, spawn: 72, boss: false },
+  { name: "Windy Ridge", targetScore: 185, startSpeed: 3.9, accel: 0.00095, spawn: 68, boss: false },
+  { name: "Boss: Thorn Lord", targetScore: 230, startSpeed: 4.0, accel: 0.00105, spawn: 64, boss: true },
+  { name: "Sunset Dunes", targetScore: 275, startSpeed: 4.3, accel: 0.00115, spawn: 60, boss: false },
+  { name: "Wild Barrens", targetScore: 320, startSpeed: 4.6, accel: 0.0012, spawn: 56, boss: false },
+  { name: "Storm Flats", targetScore: 365, startSpeed: 4.9, accel: 0.00125, spawn: 53, boss: false },
+  { name: "Night Canyons", targetScore: 420, startSpeed: 5.1, accel: 0.0013, spawn: 50, boss: false },
+  { name: "Final Boss: Cactus King", targetScore: 480, startSpeed: 5.4, accel: 0.0014, spawn: 46, boss: true },
 ];
 
 const saveKey = "runner_rush_save_v3";
@@ -72,6 +72,7 @@ let coinTimer = 0;
 let powerupTimer = 0;
 let state = "menu";
 let reviveUsed = false;
+const EARLY_OBSTACLE_GRACE_FRAMES = 220;
 
 function currentStageConfig() {
   return STAGES[save.currentStage - 1];
@@ -169,7 +170,7 @@ function startRun() {
   runCoins = 0;
   speed = stage.startSpeed;
   frame = 0;
-  obstacleTimer = 0;
+  obstacleTimer = -140;
   coinTimer = 0;
   powerupTimer = 0;
   reviveUsed = false;
@@ -292,12 +293,18 @@ function registerGameOver() {
 
 function registerStageClear() {
   collectRunRewards(true);
-  if (save.currentStage < STAGES.length && save.unlockedStage === save.currentStage) {
-    save.unlockedStage += 1;
+  if (save.currentStage < STAGES.length) {
+    if (save.unlockedStage === save.currentStage) {
+      save.unlockedStage += 1;
+    }
+    save.currentStage += 1;
+    persistSave();
+    startRun();
+    return;
   }
+
   persistSave();
-  setState("stageclear");
-  updateHud();
+  startRun();
 }
 
 function update() {
@@ -332,8 +339,10 @@ function update() {
     player.shieldTimer -= 1;
   }
 
-  const spawnThreshold = Math.max(28, stage.spawn - Math.floor(score * 0.02));
-  if (obstacleTimer > spawnThreshold) {
+  const spawnThreshold = Math.max(38, stage.spawn - Math.floor(score * 0.012));
+  const earlySpawnBonus = frame < 420 ? Math.floor((420 - frame) / 12) : 0;
+  const adjustedSpawnThreshold = spawnThreshold + earlySpawnBonus;
+  if (frame > EARLY_OBSTACLE_GRACE_FRAMES && obstacleTimer > adjustedSpawnThreshold) {
     spawnObstacle();
     obstacleTimer = 0;
   }
@@ -648,6 +657,10 @@ function loop() {
 window.addEventListener("keydown", (event) => {
   if (event.code === "Space" || event.code === "ArrowUp") {
     event.preventDefault();
+    if (state === "gameover") {
+      restart();
+      return;
+    }
     jump();
   }
   if (event.code === "ArrowDown") {
@@ -668,6 +681,8 @@ canvas.addEventListener("pointerup", (event) => {
   const rect = canvas.getBoundingClientRect();
   if (state === "menu") {
     startRun();
+  } else if (state === "gameover") {
+    restart();
   } else if (y < rect.top + rect.height / 2) {
     jump();
   } else {
