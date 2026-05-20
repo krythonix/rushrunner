@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Runner Rush</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="game-shell">
+      <header class="hud">
+        <div>
+          <h1>Runner Rush</h1>
+          <p class="subtitle">Arcade endless runner</p>
+        </div>
+        <div class="stats">
+          <span id="score">Score: 0</span>
+          <span id="coins-run">Run Coins: 0</span>
+          <span id="best-score">Best: 0</span>
+          <span id="bank-coins">Bank: 0</span>
+        </div>
+      </header>
+
+      <section class="meta-panel">
+        <span id="level">Level: 1</span>
+        <span id="mission">Mission: Collect 20 coins (0/20)</span>
+      </section>
+
+      <canvas id="game-canvas" width="960" height="540"></canvas>
+
+      <section class="controls">
+        <button id="start-btn" type="button">Start Run</button>
+        <button id="jump-btn" type="button">Jump</button>
+        <button id="slide-btn" type="button">Slide</button>
+        <button id="restart-btn" type="button" disabled>Restart</button>
+        <button id="revive-btn" type="button" disabled>Revive (50)</button>
+      </section>
+
+      <section class="shop">
+        <h2>Upgrades</h2>
+        <div class="shop-actions">
+          <button id="upgrade-jump-btn" type="button">Upgrade Jump (120)</button>
+          <button id="upgrade-magnet-btn" type="button">Upgrade Coin Magnet (120)</button>
+        </div>
+      </section>
+
+      <p class="instructions">Controls: Space=Jump, ArrowDown=Slide, tap upper canvas=jump, lower canvas=slide, R=Restart.</p>
+    </main>
+
+    <script src="./game.js"></script>
+  </body>
+</html>
