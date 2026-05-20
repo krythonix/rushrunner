@@ -94,7 +94,7 @@ function applyMusicSettings() {
 }
 
 async function ensureMusicPlayback() {
-  if (!bgMusic || !musicEnabled) {
+  if (!bgMusic || !musicEnabled || state !== "playing" || document.hidden) {
     return;
   }
   try {
@@ -176,6 +176,12 @@ function setState(nextState) {
   } else {
     restartBtn.textContent = "Restart";
   }
+
+  if (playing) {
+    ensureMusicPlayback();
+  } else if (bgMusic) {
+    bgMusic.pause();
+  }
 }
 
 function emitDust(x, y, burst) {
@@ -203,7 +209,6 @@ function collectRunRewards(completedStage) {
 }
 
 function startRun() {
-  ensureMusicPlayback();
   const stage = currentStageConfig();
   obstacles = [];
   coins = [];
@@ -698,7 +703,6 @@ function loop() {
 }
 
 window.addEventListener("keydown", (event) => {
-  ensureMusicPlayback();
   if (event.code === "Space" || event.code === "ArrowUp") {
     event.preventDefault();
     if (state === "gameover") {
@@ -718,7 +722,6 @@ window.addEventListener("keydown", (event) => {
 
 let pointerStartY = null;
 canvas.addEventListener("pointerdown", (event) => {
-  ensureMusicPlayback();
   pointerStartY = event.clientY;
 });
 canvas.addEventListener("pointerup", (event) => {
