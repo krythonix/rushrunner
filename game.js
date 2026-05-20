@@ -665,9 +665,10 @@ canvas.addEventListener("pointerdown", (event) => {
 });
 canvas.addEventListener("pointerup", (event) => {
   const y = pointerStartY === null ? event.clientY : pointerStartY;
+  const rect = canvas.getBoundingClientRect();
   if (state === "menu") {
     startRun();
-  } else if (y < canvas.getBoundingClientRect().top + canvas.height / 2) {
+  } else if (y < rect.top + rect.height / 2) {
     jump();
   } else {
     slide();
