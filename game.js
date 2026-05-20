@@ -15,6 +15,8 @@ const restartBtn = document.getElementById("restart-btn");
 const reviveBtn = document.getElementById("revive-btn");
 const upgradeJumpBtn = document.getElementById("upgrade-jump-btn");
 const upgradeMagnetBtn = document.getElementById("upgrade-magnet-btn");
+const musicToggleBtn = document.getElementById("music-toggle-btn");
+const bgMusic = document.getElementById("bg-music");
 
 const groundY = canvas.height - 68;
 const gravity = 0.84;
@@ -73,6 +75,46 @@ let powerupTimer = 0;
 let state = "menu";
 let reviveUsed = false;
 const EARLY_OBSTACLE_GRACE_FRAMES = 220;
+const musicPrefKey = "runner_rush_music_enabled";
+let musicEnabled = localStorage.getItem(musicPrefKey) !== "false";
+
+function updateMusicButton() {
+  if (!musicToggleBtn) {
+    return;
+  }
+  musicToggleBtn.textContent = musicEnabled ? "Music: On" : "Music: Off";
+}
+
+function applyMusicSettings() {
+  if (!bgMusic) {
+    return;
+  }
+  bgMusic.volume = 0.35;
+  bgMusic.muted = !musicEnabled;
+}
+
+async function ensureMusicPlayback() {
+  if (!bgMusic || !musicEnabled) {
+    return;
+  }
+  try {
+    await bgMusic.play();
+  } catch (_err) {
+    // Ignore autoplay restrictions until next interaction.
+  }
+}
+
+function toggleMusic() {
+  musicEnabled = !musicEnabled;
+  localStorage.setItem(musicPrefKey, String(musicEnabled));
+  applyMusicSettings();
+  updateMusicButton();
+  if (musicEnabled) {
+    ensureMusicPlayback();
+  } else if (bgMusic) {
+    bgMusic.pause();
+  }
+}
 
 function currentStageConfig() {
   return STAGES[save.currentStage - 1];
@@ -161,6 +203,7 @@ function collectRunRewards(completedStage) {
 }
 
 function startRun() {
+  ensureMusicPlayback();
   const stage = currentStageConfig();
   obstacles = [];
   coins = [];
@@ -655,6 +698,7 @@ function loop() {
 }
 
 window.addEventListener("keydown", (event) => {
+  ensureMusicPlayback();
   if (event.code === "Space" || event.code === "ArrowUp") {
     event.preventDefault();
     if (state === "gameover") {
@@ -674,6 +718,7 @@ window.addEventListener("keydown", (event) => {
 
 let pointerStartY = null;
 canvas.addEventListener("pointerdown", (event) => {
+  ensureMusicPlayback();
   pointerStartY = event.clientY;
 });
 canvas.addEventListener("pointerup", (event) => {
@@ -698,7 +743,21 @@ restartBtn.addEventListener("click", restart);
 reviveBtn.addEventListener("click", revive);
 upgradeJumpBtn.addEventListener("click", tryBuyJumpUpgrade);
 upgradeMagnetBtn.addEventListener("click", tryBuyMagnetUpgrade);
+musicToggleBtn.addEventListener("click", toggleMusic);
 
+document.addEventListener("visibilitychange", () => {
+  if (!bgMusic) {
+    return;
+  }
+  if (document.hidden) {
+    bgMusic.pause();
+  } else {
+    ensureMusicPlayback();
+  }
+});
+
+applyMusicSettings();
+updateMusicButton();
 setState("menu");
 updateHud();
 requestAnimationFrame(loop);

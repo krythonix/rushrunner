@@ -109,6 +109,11 @@ button {
   color: #4c0519;
 }
 
+#music-toggle-btn {
+  background: #a78bfa;
+  color: #2e1065;
+}
+
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -223,6 +228,13 @@ button:disabled {
   #revive-btn {
     grid-column: 2;
     grid-row: 3;
+  }
+
+  #music-toggle-btn {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    width: min(70%, 260px);
+    justify-self: center;
   }
 
   .instructions {
