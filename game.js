@@ -106,15 +106,36 @@ function isPortrait() {
   return window.matchMedia("(orientation: portrait)").matches;
 }
 
-function isFullscreen() {
+function isNativeFullscreen() {
   return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+
+let pseudoFullscreen = false;
+
+function isFullscreenActive() {
+  return isNativeFullscreen() || pseudoFullscreen;
+}
+
+function isIOS() {
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
+function canUseNativeFullscreen() {
+  if (isIOS()) {
+    return false;
+  }
+  const root = document.documentElement;
+  return !!(root.requestFullscreen || root.webkitRequestFullscreen);
 }
 
 function updateFullscreenButton() {
   if (!fullscreenBtn) {
     return;
   }
-  const active = isFullscreen();
+  const active = isFullscreenActive();
   fullscreenBtn.setAttribute("aria-label", active ? "Exit fullscreen" : "Enter fullscreen");
 }
 
@@ -127,7 +148,7 @@ function updateRotateHint() {
     return;
   }
   const emulated = gameShell?.classList.contains("force-landscape");
-  const show = isFullscreen() && isSmallScreen() && isPortrait() && isTouchDevice() && !emulated;
+  const show = isFullscreenActive() && isSmallScreen() && isPortrait() && isTouchDevice() && !emulated;
   rotateHint.hidden = !show;
 }
 
@@ -158,7 +179,7 @@ async function lockLandscape() {
 }
 
 async function ensureLandscape() {
-  if (!isSmallScreen() || !isFullscreen()) {
+  if (!isSmallScreen() || !isFullscreenActive()) {
     return;
   }
   if (!isPortrait()) {
@@ -184,20 +205,43 @@ function unlockOrientation() {
   }
 }
 
-async function enterFullscreen() {
-  const target = isSmallScreen() ? document.documentElement : gameShell;
-  if (!target) {
-    return;
-  }
-  try {
-    if (target.requestFullscreen) {
-      await target.requestFullscreen();
-    } else if (target.webkitRequestFullscreen) {
-      await target.webkitRequestFullscreen();
+async function tryNativeFullscreen() {
+  const targets = isSmallScreen()
+    ? [document.documentElement, document.body, gameShell]
+    : [gameShell, document.documentElement];
+  for (const target of targets) {
+    if (!target) {
+      continue;
     }
-  } catch {
-    // Fullscreen may be blocked by browser policy.
+    try {
+      if (target.requestFullscreen) {
+        await target.requestFullscreen({ navigationUI: "hide" });
+        if (isNativeFullscreen()) {
+          return true;
+        }
+      }
+      if (target.webkitRequestFullscreen) {
+        target.webkitRequestFullscreen();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        if (isNativeFullscreen()) {
+          return true;
+        }
+      }
+    } catch {
+      // Try the next fullscreen target.
+    }
   }
+  return false;
+}
+
+async function enterFullscreen() {
+  if (canUseNativeFullscreen()) {
+    const entered = await tryNativeFullscreen();
+    if (entered) {
+      return;
+    }
+  }
+  enterPseudoFullscreen();
 }
 
 async function exitFullscreen() {
@@ -212,9 +256,56 @@ async function exitFullscreen() {
   }
 }
 
+function onEnterFullscreenMode() {
+  gameShell?.classList.add("is-fullscreen");
+  updateFullscreenButton();
+  if (isSmallScreen()) {
+    ensureLandscape();
+    setTimeout(() => {
+      ensureLandscape();
+      layoutCanvasStage();
+    }, 300);
+  }
+  layoutCanvasStage();
+  updateRotateHint();
+}
+
+function onExitFullscreenMode() {
+  gameShell?.classList.remove("is-fullscreen");
+  clearLandscapeEmulation();
+  unlockOrientation();
+  layoutCanvasStage();
+  updateFullscreenButton();
+  updateRotateHint();
+}
+
+function enterPseudoFullscreen() {
+  if (pseudoFullscreen) {
+    return;
+  }
+  pseudoFullscreen = true;
+  document.body.classList.add("pseudo-fullscreen-active");
+  window.scrollTo(0, 0);
+  onEnterFullscreenMode();
+}
+
+function exitPseudoFullscreen() {
+  if (!pseudoFullscreen) {
+    return;
+  }
+  pseudoFullscreen = false;
+  document.body.classList.remove("pseudo-fullscreen-active");
+  onExitFullscreenMode();
+}
+
 async function toggleFullscreen() {
-  if (isFullscreen()) {
-    await exitFullscreen();
+  if (isFullscreenActive()) {
+    if (isNativeFullscreen()) {
+      await exitFullscreen();
+    }
+    if (pseudoFullscreen) {
+      exitPseudoFullscreen();
+    }
   } else {
     await enterFullscreen();
   }
@@ -245,27 +336,15 @@ function layoutCanvasStage() {
 }
 
 function handleFullscreenChange() {
-  const active = isFullscreen();
-  gameShell?.classList.toggle("is-fullscreen", active);
-  updateFullscreenButton();
-  if (active && isSmallScreen()) {
-    ensureLandscape();
-    setTimeout(() => {
-      ensureLandscape();
-      layoutCanvasStage();
-    }, 300);
-  } else {
-    clearLandscapeEmulation();
-    if (!active) {
-      unlockOrientation();
-    }
+  if (isNativeFullscreen()) {
+    onEnterFullscreenMode();
+  } else if (!pseudoFullscreen) {
+    onExitFullscreenMode();
   }
-  layoutCanvasStage();
-  updateRotateHint();
 }
 
 function handleOrientationChange() {
-  if (isFullscreen() && isSmallScreen()) {
+  if (isFullscreenActive() && isSmallScreen()) {
     ensureLandscape();
   }
   layoutCanvasStage();
@@ -1013,7 +1092,11 @@ upgradeJumpBtn.addEventListener("click", tryBuyJumpUpgrade);
 upgradeMagnetBtn.addEventListener("click", tryBuyMagnetUpgrade);
 musicToggleBtn.addEventListener("click", toggleMusic);
 if (fullscreenBtn) {
-  fullscreenBtn.addEventListener("click", toggleFullscreen);
+  fullscreenBtn.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleFullscreen();
+  });
 }
 document.addEventListener("fullscreenchange", handleFullscreenChange);
 document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
