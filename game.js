@@ -248,8 +248,12 @@ function startRun() {
 }
 
 function restart() {
-  if (state === "stageclear" && save.currentStage < STAGES.length) {
-    save.currentStage += 1;
+  if (state === "stageclear") {
+    if (save.currentStage < STAGES.length) {
+      save.currentStage += 1;
+    } else {
+      save.currentStage = 1;
+    }
     persistSave();
   }
   startRun();
@@ -415,10 +419,9 @@ function registerStageClear() {
     return;
   }
 
-  save.currentStage = 1;
   persistSave();
   stageStartScore = score;
-  speed = Math.max(speed, currentStageConfig().startSpeed);
+  setState("stageclear");
   updateHud();
 }
 
@@ -479,6 +482,7 @@ function update() {
 
   if (Math.floor(score - stageStartScore) >= stage.targetScore) {
     registerStageClear();
+    return;
   }
 
   const hitbox = currentHitbox();
@@ -740,15 +744,16 @@ function drawOverlay() {
     ctx.fillText(`Stage ${save.currentStage} unlocked of ${save.unlockedStage}`, canvas.width / 2, canvas.height / 2 + 10);
     ctx.fillText("Press Start Run or Space", canvas.width / 2, canvas.height / 2 + 40);
   } else if (state === "stageclear") {
+    const finishedAllStages = save.currentStage >= STAGES.length;
     ctx.font = "bold 36px Arial";
-    ctx.fillText("Stage Cleared!", canvas.width / 2, canvas.height / 2 - 24);
+    ctx.fillText(finishedAllStages ? "Congratulations!" : "Stage Cleared!", canvas.width / 2, canvas.height / 2 - 24);
     ctx.font = "20px Arial";
-    if (save.currentStage >= STAGES.length) {
-      ctx.fillText("You finished all 10 stages!", canvas.width / 2, canvas.height / 2 + 10);
+    if (finishedAllStages) {
+      ctx.fillText("You cleared all 10 stages!", canvas.width / 2, canvas.height / 2 + 10);
     } else {
       ctx.fillText(`Next: Stage ${save.currentStage + 1}`, canvas.width / 2, canvas.height / 2 + 10);
     }
-    ctx.fillText("Tap Restart to continue", canvas.width / 2, canvas.height / 2 + 40);
+    ctx.fillText(finishedAllStages ? "Tap Restart to play again" : "Tap Restart to continue", canvas.width / 2, canvas.height / 2 + 40);
   } else {
     ctx.font = "bold 38px Arial";
     ctx.fillText("Game Over", canvas.width / 2, canvas.height / 2 - 12);
