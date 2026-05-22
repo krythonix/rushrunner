@@ -467,6 +467,80 @@ html:-webkit-full-screen .game-shell.is-fullscreen.canvas-only-fs {
   display: none;
 }
 
+/* Desktop fullscreen: compact HUD overlay on canvas, keep controls below */
+.game-shell.is-fullscreen:not(.canvas-only-fs) {
+  padding: 10px 12px;
+  gap: 10px;
+}
+
+.game-shell.is-fullscreen:not(.canvas-only-fs) .canvas-wrap {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.game-shell.is-fullscreen:not(.canvas-only-fs) .canvas-stage {
+  grid-area: 1 / 1;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: auto;
+}
+
+.game-shell.is-fullscreen:not(.canvas-only-fs) .score-panel {
+  grid-area: 1 / 1;
+  align-self: start;
+  justify-self: center;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 8px 10px;
+  pointer-events: none;
+  z-index: 4;
+  color: #f8fafc;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+.game-shell.is-fullscreen:not(.canvas-only-fs) .score-panel .hud-title {
+  display: none;
+}
+
+.game-shell.is-fullscreen:not(.canvas-only-fs) .score-panel .hud {
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 2px;
+  gap: 8px;
+}
+
+.game-shell.is-fullscreen:not(.canvas-only-fs) .score-panel .stats {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 0.9rem;
+  color: #f8fafc;
+}
+
+.game-shell.is-fullscreen:not(.canvas-only-fs) .score-panel .meta-panel {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 0.88rem;
+  color: #f8fafc;
+}
+
+.game-shell.is-fullscreen:not(.canvas-only-fs) .controls {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 5;
+  margin-top: 0;
+}
+
 @media (max-width: 900px) and (orientation: portrait) {
   body {
     display: block;
