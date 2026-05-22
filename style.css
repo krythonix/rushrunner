@@ -167,6 +167,15 @@ button {
   color: #052e16;
 }
 
+#endless-btn {
+  background: #8b5cf6;
+  color: #2e1065;
+}
+
+#endless-btn[hidden] {
+  display: none;
+}
+
 #restart-btn {
   background: #10b981;
   color: #052e2b;

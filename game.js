@@ -9,6 +9,7 @@ const levelEl = document.getElementById("level");
 const missionEl = document.getElementById("mission");
 
 const startBtn = document.getElementById("start-btn");
+const endlessBtn = document.getElementById("endless-btn");
 const jumpBtn = document.getElementById("jump-btn");
 const slideBtn = document.getElementById("slide-btn");
 const restartBtn = document.getElementById("restart-btn");
@@ -34,17 +35,97 @@ const gravity = 0.84;
 const baseJumpForce = -14.8;
 
 const STAGES = [
-  { name: "Sunny Trail", targetScore: 90, startSpeed: 3.0, accel: 0.00065, spawn: 80, boss: false },
-  { name: "Dry Plains", targetScore: 120, startSpeed: 3.3, accel: 0.00075, spawn: 76, boss: false },
-  { name: "Rock Dust", targetScore: 150, startSpeed: 3.6, accel: 0.00085, spawn: 72, boss: false },
-  { name: "Windy Ridge", targetScore: 185, startSpeed: 3.9, accel: 0.00095, spawn: 68, boss: false },
-  { name: "Boss: Thorn Lord", targetScore: 230, startSpeed: 4.0, accel: 0.00105, spawn: 64, boss: true },
-  { name: "Sunset Dunes", targetScore: 275, startSpeed: 4.3, accel: 0.00115, spawn: 60, boss: false },
-  { name: "Wild Barrens", targetScore: 320, startSpeed: 4.6, accel: 0.0012, spawn: 56, boss: false },
-  { name: "Storm Flats", targetScore: 365, startSpeed: 4.9, accel: 0.00125, spawn: 53, boss: false },
-  { name: "Night Canyons", targetScore: 420, startSpeed: 5.1, accel: 0.0013, spawn: 50, boss: false },
-  { name: "Final Boss: Cactus King", targetScore: 480, startSpeed: 5.4, accel: 0.0014, spawn: 46, boss: true },
+  { name: "Sunny Trail", targetScore: 90, startSpeed: 3.0, accel: 0.00065, spawn: 80, boss: false, biome: "grass" },
+  { name: "Dry Plains", targetScore: 120, startSpeed: 3.3, accel: 0.00075, spawn: 76, boss: false, biome: "grass" },
+  { name: "Rock Dust", targetScore: 150, startSpeed: 3.6, accel: 0.00085, spawn: 72, boss: false, biome: "desert" },
+  { name: "Windy Ridge", targetScore: 185, startSpeed: 3.9, accel: 0.00095, spawn: 68, boss: false, biome: "dusk" },
+  { name: "Boss: Thorn Lord", targetScore: 230, startSpeed: 4.0, accel: 0.00105, spawn: 64, boss: true, biome: "grass" },
+  { name: "Sunset Dunes", targetScore: 275, startSpeed: 4.3, accel: 0.00115, spawn: 60, boss: false, biome: "desert" },
+  { name: "Wild Barrens", targetScore: 320, startSpeed: 4.6, accel: 0.0012, spawn: 56, boss: false, biome: "storm" },
+  { name: "Storm Flats", targetScore: 365, startSpeed: 4.9, accel: 0.00125, spawn: 53, boss: false, biome: "storm" },
+  { name: "Night Canyons", targetScore: 420, startSpeed: 5.1, accel: 0.0013, spawn: 50, boss: false, biome: "night" },
+  { name: "Final Boss: Cactus King", targetScore: 480, startSpeed: 5.4, accel: 0.0014, spawn: 46, boss: true, biome: "night" },
+  { name: "Frozen Tundra", targetScore: 540, startSpeed: 5.6, accel: 0.00145, spawn: 44, boss: false, biome: "frost" },
+  { name: "Ice Ravine", targetScore: 600, startSpeed: 5.8, accel: 0.0015, spawn: 42, boss: false, biome: "frost" },
+  { name: "Glacier Pass", targetScore: 660, startSpeed: 6.0, accel: 0.00155, spawn: 40, boss: false, biome: "frost" },
+  { name: "Blizzard Peak", targetScore: 720, startSpeed: 6.2, accel: 0.0016, spawn: 38, boss: false, biome: "frost" },
+  { name: "Boss: Frost Titan", targetScore: 790, startSpeed: 6.3, accel: 0.00165, spawn: 36, boss: true, biome: "frost" },
+  { name: "Ember Wastes", targetScore: 860, startSpeed: 6.5, accel: 0.0017, spawn: 34, boss: false, biome: "ash" },
+  { name: "Magma Fields", targetScore: 930, startSpeed: 6.7, accel: 0.00175, spawn: 32, boss: false, biome: "ash" },
+  { name: "Ash Storm", targetScore: 1000, startSpeed: 6.9, accel: 0.0018, spawn: 30, boss: false, biome: "ash" },
+  { name: "Scorched Void", targetScore: 1080, startSpeed: 7.1, accel: 0.00185, spawn: 28, boss: false, biome: "ash" },
+  { name: "Final Boss: Inferno Lord", targetScore: 1180, startSpeed: 7.3, accel: 0.00195, spawn: 26, boss: true, biome: "ash" },
 ];
+
+const ENDLESS_CONFIG = {
+  name: "Endless Rush",
+  targetScore: Number.POSITIVE_INFINITY,
+  startSpeed: 7.5,
+  accel: 0.0021,
+  spawn: 24,
+  boss: true,
+  biome: "storm",
+  endless: true,
+};
+
+const BIOME_PALETTES = {
+  grass: {
+    sky: ["#8bd5ff", "#d7f1ff"],
+    ground: "#8bc34a",
+    hills: "#7fb069",
+    dunes: "rgba(126, 90, 47, 0.22)",
+    line: "#6b8f2a",
+    clouds: "rgba(255,255,255,0.85)",
+  },
+  desert: {
+    sky: ["#fdba74", "#fef3c7"],
+    ground: "#d4a056",
+    hills: "#c2853a",
+    dunes: "rgba(120, 53, 15, 0.28)",
+    line: "#92400e",
+    clouds: "rgba(255,255,255,0.55)",
+  },
+  dusk: {
+    sky: ["#7c3aed", "#fb7185"],
+    ground: "#84cc16",
+    hills: "#65a30d",
+    dunes: "rgba(88, 28, 135, 0.24)",
+    line: "#4d7c0f",
+    clouds: "rgba(254, 243, 199, 0.45)",
+  },
+  storm: {
+    sky: ["#64748b", "#94a3b8"],
+    ground: "#4d7c0f",
+    hills: "#3f6212",
+    dunes: "rgba(30, 41, 59, 0.35)",
+    line: "#365314",
+    clouds: "rgba(203, 213, 225, 0.7)",
+  },
+  night: {
+    sky: ["#0f172a", "#312e81"],
+    ground: "#166534",
+    hills: "#14532d",
+    dunes: "rgba(15, 23, 42, 0.45)",
+    line: "#14532d",
+    clouds: "rgba(148, 163, 184, 0.35)",
+  },
+  frost: {
+    sky: ["#dbeafe", "#f0f9ff"],
+    ground: "#e2e8f0",
+    hills: "#cbd5e1",
+    dunes: "rgba(125, 211, 252, 0.35)",
+    line: "#94a3b8",
+    clouds: "rgba(255,255,255,0.92)",
+  },
+  ash: {
+    sky: ["#44403c", "#7f1d1d"],
+    ground: "#292524",
+    hills: "#44403c",
+    dunes: "rgba(248, 113, 113, 0.28)",
+    line: "#57534e",
+    clouds: "rgba(120, 113, 108, 0.55)",
+  },
+};
 
 const saveKey = "runner_rush_save_v3";
 const defaultSave = {
@@ -55,10 +136,20 @@ const defaultSave = {
   magnetLevel: 0,
   unlockedStage: 1,
   currentStage: 1,
+  endlessUnlocked: false,
+  endlessBest: 0,
 };
 const save = { ...defaultSave, ...JSON.parse(localStorage.getItem(saveKey) || "{}") };
 save.unlockedStage = Math.max(1, Math.min(STAGES.length, save.unlockedStage));
 save.currentStage = Math.max(1, Math.min(save.unlockedStage, save.currentStage));
+save.endlessUnlocked = !!save.endlessUnlocked;
+save.endlessBest = Math.max(0, save.endlessBest || 0);
+if (save.unlockedStage >= 10 && STAGES.length > 10 && save.unlockedStage < 11) {
+  save.unlockedStage = 11;
+  if (save.currentStage === 10) {
+    save.currentStage = 11;
+  }
+}
 
 const player = {
   x: 90,
@@ -87,6 +178,7 @@ let obstacleTimer = 0;
 let coinTimer = 0;
 let powerupTimer = 0;
 let state = "menu";
+let endlessMode = false;
 let reviveUsed = false;
 let sprinting = false;
 const EARLY_OBSTACLE_GRACE_FRAMES = 220;
@@ -434,7 +526,14 @@ function toggleMusic() {
 }
 
 function currentStageConfig() {
+  if (endlessMode) {
+    return ENDLESS_CONFIG;
+  }
   return STAGES[save.currentStage - 1];
+}
+
+function endlessRunScore() {
+  return Math.max(0, Math.floor(score - stageStartScore));
 }
 
 function persistSave() {
@@ -467,15 +566,24 @@ function currentHitbox() {
 function updateHud() {
   const stage = currentStageConfig();
   const scoreNow = Math.floor(score);
-  const stageProgress = Math.max(0, Math.floor(score - stageStartScore));
+  const stageProgress = endlessMode ? endlessRunScore() : Math.max(0, Math.floor(score - stageStartScore));
   scoreEl.textContent = `Score: ${scoreNow}`;
   coinsRunEl.textContent = `Run Coins: ${runCoins}`;
   bestScoreEl.textContent = `Best: ${save.bestScore}`;
   bankCoinsEl.textContent = `Bank: ${save.bankCoins}`;
-  levelEl.textContent = `Stage: ${save.currentStage}/${STAGES.length}`;
-  missionEl.textContent = `Goal: ${stage.name} (${Math.min(stageProgress, stage.targetScore)}/${stage.targetScore})`;
+  if (endlessMode) {
+    levelEl.textContent = "Mode: Endless";
+    missionEl.textContent = `Survive! Run ${stageProgress} · Best ${save.endlessBest}`;
+  } else {
+    levelEl.textContent = `Stage: ${save.currentStage}/${STAGES.length}`;
+    missionEl.textContent = `Goal: ${stage.name} (${Math.min(stageProgress, stage.targetScore)}/${stage.targetScore})`;
+  }
   upgradeJumpBtn.textContent = `Upgrade Jump (${jumpUpgradeCost()})`;
   upgradeMagnetBtn.textContent = `Upgrade Coin Magnet (${magnetUpgradeCost()})`;
+  if (endlessBtn) {
+    endlessBtn.hidden = !save.endlessUnlocked;
+    endlessBtn.disabled = state === "playing";
+  }
 }
 
 function setState(nextState) {
@@ -489,9 +597,15 @@ function setState(nextState) {
   reviveBtn.disabled = !(nextState === "gameover" && !reviveUsed && save.bankCoins >= 50);
 
   if (nextState === "gameover") {
-    restartBtn.textContent = "Retry Stage";
+    restartBtn.textContent = endlessMode ? "Retry Endless" : "Retry Stage";
   } else if (nextState === "stageclear") {
-    restartBtn.textContent = save.currentStage < STAGES.length ? "Next Stage" : "Play Again";
+    if (save.currentStage < STAGES.length) {
+      restartBtn.textContent = "Next Stage";
+    } else if (save.endlessUnlocked && !endlessMode) {
+      restartBtn.textContent = "Endless Mode";
+    } else {
+      restartBtn.textContent = "Play Again";
+    }
   } else {
     restartBtn.textContent = "Restart";
   }
@@ -531,6 +645,14 @@ function collectRunRewards(completedStage) {
   }
 }
 
+function startEndlessRun() {
+  if (!save.endlessUnlocked) {
+    return;
+  }
+  endlessMode = true;
+  startRun();
+}
+
 function startRun() {
   const stage = currentStageConfig();
   obstacles = [];
@@ -562,8 +684,12 @@ function restart() {
   if (state === "stageclear") {
     if (save.currentStage < STAGES.length) {
       save.currentStage += 1;
+      endlessMode = false;
+    } else if (save.endlessUnlocked && !endlessMode) {
+      endlessMode = true;
     } else {
       save.currentStage = 1;
+      endlessMode = false;
     }
     persistSave();
   }
@@ -576,6 +702,7 @@ function restartFromStageZero() {
   }
   save.currentStage = 1;
   save.unlockedStage = 1;
+  endlessMode = false;
   persistSave();
   startRun();
 }
@@ -587,6 +714,7 @@ function resetEverything() {
   }
 
   Object.assign(save, defaultSave);
+  endlessMode = false;
   persistSave();
 
   obstacles = [];
@@ -632,6 +760,7 @@ function revive() {
 
 function jump() {
   if (state === "menu") {
+    endlessMode = false;
     startRun();
     return;
   }
@@ -675,8 +804,9 @@ function tryBuyMagnetUpgrade() {
 function spawnObstacle() {
   const stage = currentStageConfig();
   const roll = Math.random();
+  const stageIndex = endlessMode ? STAGES.length + 1 : save.currentStage;
 
-  if (stage.boss && roll < 0.2) {
+  if (stage.boss && roll < (endlessMode ? 0.28 : 0.2)) {
     obstacles.push({
       x: canvas.width + 20,
       y: groundY - 80,
@@ -684,6 +814,16 @@ function spawnObstacle() {
       h: 80,
       type: "boss",
     });
+    return;
+  }
+  if (stageIndex >= 12 && roll < 0.1) {
+    obstacles.push({ x: canvas.width + 20, y: groundY - 34, w: 30, h: 34, type: "low" });
+    obstacles.push({ x: canvas.width + 58, y: groundY - 86, w: 34, h: 24, type: "high" });
+    return;
+  }
+  if (stageIndex >= 16 && roll < 0.18) {
+    obstacles.push({ x: canvas.width + 20, y: groundY - 62, w: 34, h: 62, type: "wall" });
+    obstacles.push({ x: canvas.width + 72, y: groundY - 34, w: 30, h: 34, type: "low" });
     return;
   }
   if (roll < 0.45) {
@@ -710,6 +850,12 @@ function rectHit(a, b) {
 }
 
 function registerGameOver() {
+  if (endlessMode) {
+    const runScore = endlessRunScore();
+    if (runScore > save.endlessBest) {
+      save.endlessBest = runScore;
+    }
+  }
   collectRunRewards(false);
   persistSave();
   setState("gameover");
@@ -730,6 +876,7 @@ function registerStageClear() {
     return;
   }
 
+  save.endlessUnlocked = true;
   persistSave();
   stageStartScore = score;
   setState("stageclear");
@@ -769,7 +916,10 @@ function update() {
     player.shieldTimer -= 1;
   }
 
-  const spawnThreshold = Math.max(38, stage.spawn - Math.floor(score * 0.012));
+  const spawnThreshold = Math.max(
+    endlessMode ? 22 : 38,
+    stage.spawn - Math.floor(score * (endlessMode ? 0.018 : 0.012)),
+  );
   const earlySpawnBonus = frame < 420 ? Math.floor((420 - frame) / 12) : 0;
   const adjustedSpawnThreshold = spawnThreshold + earlySpawnBonus;
   if (frame > EARLY_OBSTACLE_GRACE_FRAMES && obstacleTimer > adjustedSpawnThreshold) {
@@ -785,13 +935,13 @@ function update() {
     powerupTimer = 0;
   }
 
-  speed += stage.accel;
+  speed = Math.min(endlessMode ? 9.4 : 8.2, speed + stage.accel);
   score += 0.17 + currentSpeed * 0.012;
   if (player.grounded && !player.sliding && frame % 10 === 0) {
     emitDust(player.x + 6, groundY, false);
   }
 
-  if (Math.floor(score - stageStartScore) >= stage.targetScore) {
+  if (!endlessMode && Math.floor(score - stageStartScore) >= stage.targetScore) {
     registerStageClear();
     return;
   }
@@ -865,37 +1015,47 @@ function update() {
 }
 
 function drawBackground() {
+  const palette = BIOME_PALETTES[currentStageConfig().biome] || BIOME_PALETTES.grass;
   const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  skyGradient.addColorStop(0, "#8bd5ff");
-  skyGradient.addColorStop(1, "#d7f1ff");
+  skyGradient.addColorStop(0, palette.sky[0]);
+  skyGradient.addColorStop(1, palette.sky[1]);
   ctx.fillStyle = skyGradient;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  if (currentStageConfig().biome === "night" || currentStageConfig().biome === "storm") {
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    for (let i = 0; i < 24; i += 1) {
+      const sx = (i * 113 + frame * 0.04) % canvas.width;
+      const sy = 24 + (i * 37) % 120;
+      ctx.fillRect(sx, sy, i % 3 === 0 ? 2 : 1, i % 3 === 0 ? 2 : 1);
+    }
+  }
+
   const cloudOffset = (frame * 0.35) % (canvas.width + 120);
-  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.fillStyle = palette.clouds;
   ctx.beginPath();
   ctx.ellipse(canvas.width - cloudOffset, 70, 44, 20, 0, 0, Math.PI * 2);
   ctx.ellipse(canvas.width - cloudOffset + 28, 64, 30, 16, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = "#8bc34a";
+  ctx.fillStyle = palette.ground;
   ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
 
   const hillOffset = (frame * 0.15) % (canvas.width + 220);
-  ctx.fillStyle = "#7fb069";
+  ctx.fillStyle = palette.hills;
   ctx.beginPath();
   ctx.ellipse(canvas.width - hillOffset, groundY + 10, 140, 48, 0, 0, Math.PI * 2);
   ctx.ellipse(canvas.width - hillOffset + 190, groundY + 12, 120, 44, 0, 0, Math.PI * 2);
   ctx.fill();
 
   const duneOffset = (frame * 0.26) % (canvas.width + 280);
-  ctx.fillStyle = "rgba(126, 90, 47, 0.22)";
+  ctx.fillStyle = palette.dunes;
   ctx.beginPath();
   ctx.ellipse(canvas.width - duneOffset, groundY + 12, 200, 26, 0, 0, Math.PI * 2);
   ctx.ellipse(canvas.width - duneOffset + 260, groundY + 14, 180, 22, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.strokeStyle = "#6b8f2a";
+  ctx.strokeStyle = palette.line;
   ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.moveTo(0, groundY);
@@ -1050,26 +1210,36 @@ function drawOverlay() {
   ctx.textAlign = "center";
   if (state === "menu") {
     ctx.font = `24px ${FONT_TITLE}`;
-    ctx.fillText("Runner Rush", canvas.width / 2, canvas.height / 2 - 24);
+    ctx.fillText("Runner Rush", canvas.width / 2, canvas.height / 2 - 36);
     ctx.font = `18px ${FONT_UI}`;
-    ctx.fillText(`Stage ${save.currentStage} unlocked of ${save.unlockedStage}`, canvas.width / 2, canvas.height / 2 + 10);
-    ctx.fillText("Press Start Run or Space", canvas.width / 2, canvas.height / 2 + 40);
+    ctx.fillText(`Stage ${save.currentStage}/${STAGES.length} unlocked`, canvas.width / 2, canvas.height / 2 - 4);
+    if (save.endlessUnlocked) {
+      ctx.fillText("Endless Mode unlocked", canvas.width / 2, canvas.height / 2 + 24);
+      ctx.fillText("Press Start Run or Space", canvas.width / 2, canvas.height / 2 + 54);
+    } else {
+      ctx.fillText("Press Start Run or Space", canvas.width / 2, canvas.height / 2 + 24);
+    }
   } else if (state === "stageclear") {
     const finishedAllStages = save.currentStage >= STAGES.length;
     ctx.font = `22px ${FONT_TITLE}`;
-    ctx.fillText(finishedAllStages ? "Congratulations!" : "Stage Cleared!", canvas.width / 2, canvas.height / 2 - 24);
+    ctx.fillText(finishedAllStages ? "Campaign Complete!" : "Stage Cleared!", canvas.width / 2, canvas.height / 2 - 24);
     ctx.font = `18px ${FONT_UI}`;
     if (finishedAllStages) {
-      ctx.fillText("You cleared all 10 stages!", canvas.width / 2, canvas.height / 2 + 10);
+      ctx.fillText(`All ${STAGES.length} stages beaten!`, canvas.width / 2, canvas.height / 2 + 10);
+      ctx.fillText("Tap Endless Mode for survival run", canvas.width / 2, canvas.height / 2 + 40);
     } else {
       ctx.fillText(`Next: Stage ${save.currentStage + 1}`, canvas.width / 2, canvas.height / 2 + 10);
+      ctx.fillText("Tap Restart to continue", canvas.width / 2, canvas.height / 2 + 40);
     }
-    ctx.fillText(finishedAllStages ? "Tap Restart to play again" : "Tap Restart to continue", canvas.width / 2, canvas.height / 2 + 40);
   } else {
     ctx.font = `26px ${FONT_TITLE}`;
-    ctx.fillText("Game Over", canvas.width / 2, canvas.height / 2 - 12);
+    ctx.fillText(endlessMode ? "Endless Over" : "Game Over", canvas.width / 2, canvas.height / 2 - 12);
     ctx.font = `18px ${FONT_UI}`;
-    ctx.fillText("Retry the current stage", canvas.width / 2, canvas.height / 2 + 24);
+    if (endlessMode) {
+      ctx.fillText(`Run score: ${endlessRunScore()} · Best: ${save.endlessBest}`, canvas.width / 2, canvas.height / 2 + 24);
+    } else {
+      ctx.fillText("Retry the current stage", canvas.width / 2, canvas.height / 2 + 24);
+    }
   }
 }
 
@@ -1105,6 +1275,9 @@ window.addEventListener("keydown", (event) => {
   if (event.code === "KeyR") {
     restart();
   }
+  if (event.code === "KeyE" && state === "menu" && save.endlessUnlocked) {
+    startEndlessRun();
+  }
 });
 
 window.addEventListener("keyup", (event) => {
@@ -1115,6 +1288,7 @@ window.addEventListener("keyup", (event) => {
 
 function handleCanvasPointer(offsetY) {
   if (state === "menu") {
+    endlessMode = false;
     startRun();
     return;
   }
@@ -1162,7 +1336,13 @@ function preventDoubleTapZoom() {
 
 preventDoubleTapZoom();
 
-startBtn.addEventListener("click", startRun);
+startBtn.addEventListener("click", () => {
+  endlessMode = false;
+  startRun();
+});
+if (endlessBtn) {
+  endlessBtn.addEventListener("click", startEndlessRun);
+}
 jumpBtn.addEventListener("click", jump);
 slideBtn.addEventListener("click", slide);
 restartBtn.addEventListener("click", restart);

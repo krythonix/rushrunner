@@ -25,8 +25,9 @@ This sets `?v=` to the current git commit (or a timestamp if git is unavailable)
 - Full run flow: menu, play, game-over, restart, one-run revive
 - Jump + slide mechanics with different obstacle types
 - Coin collection and persistent coin bank
-- Fixed 10-stage progression with stage goals and unlocks
-- Boss stages (Stage 5 and Stage 10)
+- Fixed 20-stage progression with stage goals and unlocks
+- Boss stages (Stage 5, 10, 15, and 20)
+- Endless survival mode after beating all stages
 - Upgrade loop:
   - jump height upgrades
   - coin magnet upgrades
