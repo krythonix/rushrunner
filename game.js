@@ -12,6 +12,8 @@ const startBtn = document.getElementById("start-btn");
 const jumpBtn = document.getElementById("jump-btn");
 const slideBtn = document.getElementById("slide-btn");
 const restartBtn = document.getElementById("restart-btn");
+const restartStageZeroBtn = document.getElementById("restart-stage-zero-btn");
+const resetEverythingBtn = document.getElementById("reset-everything-btn");
 const reviveBtn = document.getElementById("revive-btn");
 const upgradeJumpBtn = document.getElementById("upgrade-jump-btn");
 const upgradeMagnetBtn = document.getElementById("upgrade-magnet-btn");
@@ -20,7 +22,7 @@ const bgMusic = document.getElementById("bg-music");
 
 const groundY = canvas.height - 68;
 const gravity = 0.84;
-const baseJumpForce = -13.2;
+const baseJumpForce = -14.8;
 
 const STAGES = [
   { name: "Sunny Trail", targetScore: 90, startSpeed: 3.0, accel: 0.00065, spawn: 80, boss: false },
@@ -67,6 +69,9 @@ let powerups = [];
 let dustParticles = [];
 let score = 0;
 let runCoins = 0;
+let stageStartScore = 0;
+let rewardCheckpointScore = 0;
+let rewardCheckpointCoins = 0;
 let speed = 3.2;
 let frame = 0;
 let obstacleTimer = 0;
@@ -74,6 +79,7 @@ let coinTimer = 0;
 let powerupTimer = 0;
 let state = "menu";
 let reviveUsed = false;
+let sprinting = false;
 const EARLY_OBSTACLE_GRACE_FRAMES = 220;
 const musicPrefKey = "runner_rush_music_enabled";
 let musicEnabled = localStorage.getItem(musicPrefKey) !== "false";
@@ -150,12 +156,13 @@ function currentHitbox() {
 function updateHud() {
   const stage = currentStageConfig();
   const scoreNow = Math.floor(score);
+  const stageProgress = Math.max(0, Math.floor(score - stageStartScore));
   scoreEl.textContent = `Score: ${scoreNow}`;
   coinsRunEl.textContent = `Run Coins: ${runCoins}`;
   bestScoreEl.textContent = `Best: ${save.bestScore}`;
   bankCoinsEl.textContent = `Bank: ${save.bankCoins}`;
   levelEl.textContent = `Stage: ${save.currentStage}/${STAGES.length}`;
-  missionEl.textContent = `Goal: ${stage.name} (${Math.min(scoreNow, stage.targetScore)}/${stage.targetScore})`;
+  missionEl.textContent = `Goal: ${stage.name} (${Math.min(stageProgress, stage.targetScore)}/${stage.targetScore})`;
   upgradeJumpBtn.textContent = `Upgrade Jump (${jumpUpgradeCost()})`;
   upgradeMagnetBtn.textContent = `Upgrade Coin Magnet (${magnetUpgradeCost()})`;
 }
@@ -167,6 +174,7 @@ function setState(nextState) {
   jumpBtn.disabled = !playing;
   slideBtn.disabled = !playing;
   restartBtn.disabled = playing;
+  restartStageZeroBtn.disabled = playing;
   reviveBtn.disabled = !(nextState === "gameover" && !reviveUsed && save.bankCoins >= 50);
 
   if (nextState === "gameover") {
@@ -200,9 +208,13 @@ function emitDust(x, y, burst) {
 
 function collectRunRewards(completedStage) {
   const stageBonus = completedStage ? 60 + save.currentStage * 15 : 0;
-  const earned = runCoins + Math.floor(score / 24) + stageBonus;
+  const earnedCoins = Math.max(0, runCoins - rewardCheckpointCoins);
+  const earnedScore = Math.max(0, Math.floor((score - rewardCheckpointScore) / 24));
+  const earned = earnedCoins + earnedScore + stageBonus;
   save.bankCoins += earned;
-  save.totalCoins += runCoins;
+  save.totalCoins += earnedCoins;
+  rewardCheckpointCoins = runCoins;
+  rewardCheckpointScore = score;
   if (Math.floor(score) > save.bestScore) {
     save.bestScore = Math.floor(score);
   }
@@ -216,6 +228,9 @@ function startRun() {
   dustParticles = [];
   score = 0;
   runCoins = 0;
+  stageStartScore = 0;
+  rewardCheckpointScore = 0;
+  rewardCheckpointCoins = 0;
   speed = stage.startSpeed;
   frame = 0;
   obstacleTimer = -140;
@@ -238,6 +253,53 @@ function restart() {
     persistSave();
   }
   startRun();
+}
+
+function restartFromStageZero() {
+  if (state === "playing") {
+    return;
+  }
+  save.currentStage = 1;
+  save.unlockedStage = 1;
+  persistSave();
+  startRun();
+}
+
+function resetEverything() {
+  const accepted = window.confirm("Reset all progress, coins, and upgrades? This cannot be undone.");
+  if (!accepted) {
+    return;
+  }
+
+  Object.assign(save, defaultSave);
+  persistSave();
+
+  obstacles = [];
+  coins = [];
+  powerups = [];
+  dustParticles = [];
+  score = 0;
+  runCoins = 0;
+  stageStartScore = 0;
+  rewardCheckpointScore = 0;
+  rewardCheckpointCoins = 0;
+  speed = currentStageConfig().startSpeed;
+  frame = 0;
+  obstacleTimer = 0;
+  coinTimer = 0;
+  powerupTimer = 0;
+  reviveUsed = false;
+  sprinting = false;
+
+  player.y = groundY - player.h;
+  player.vy = 0;
+  player.grounded = true;
+  player.sliding = false;
+  player.slideTimer = 0;
+  player.shieldTimer = 0;
+
+  setState("menu");
+  updateHud();
 }
 
 function revive() {
@@ -302,9 +364,9 @@ function spawnObstacle() {
   if (stage.boss && roll < 0.2) {
     obstacles.push({
       x: canvas.width + 20,
-      y: groundY - 92,
+      y: groundY - 80,
       w: 44,
-      h: 92,
+      h: 80,
       type: "boss",
     });
     return;
@@ -347,12 +409,17 @@ function registerStageClear() {
     }
     save.currentStage += 1;
     persistSave();
-    startRun();
+    stageStartScore = score;
+    speed = Math.max(speed, currentStageConfig().startSpeed);
+    updateHud();
     return;
   }
 
+  save.currentStage = 1;
   persistSave();
-  startRun();
+  stageStartScore = score;
+  speed = Math.max(speed, currentStageConfig().startSpeed);
+  updateHud();
 }
 
 function update() {
@@ -360,6 +427,7 @@ function update() {
     return;
   }
   const stage = currentStageConfig();
+  const currentSpeed = speed + (sprinting ? 1.8 : 0);
   frame += 1;
   obstacleTimer += 1;
   coinTimer += 1;
@@ -404,14 +472,13 @@ function update() {
   }
 
   speed += stage.accel;
-  score += 0.17 + speed * 0.012;
+  score += 0.17 + currentSpeed * 0.012;
   if (player.grounded && !player.sliding && frame % 10 === 0) {
     emitDust(player.x + 6, groundY, false);
   }
 
-  if (Math.floor(score) >= stage.targetScore) {
+  if (Math.floor(score - stageStartScore) >= stage.targetScore) {
     registerStageClear();
-    return;
   }
 
   const hitbox = currentHitbox();
@@ -419,7 +486,7 @@ function update() {
 
   for (let i = obstacles.length - 1; i >= 0; i -= 1) {
     const obs = obstacles[i];
-    obs.x -= speed;
+    obs.x -= currentSpeed;
     if (obs.x + obs.w < -14) {
       obstacles.splice(i, 1);
       continue;
@@ -437,7 +504,7 @@ function update() {
 
   for (let i = coins.length - 1; i >= 0; i -= 1) {
     const c = coins[i];
-    c.x -= speed;
+    c.x -= currentSpeed;
     const dx = player.x + player.w / 2 - c.x;
     const dy = player.y + 20 - c.y;
     const dist = Math.hypot(dx, dy);
@@ -457,7 +524,7 @@ function update() {
 
   for (let i = powerups.length - 1; i >= 0; i -= 1) {
     const p = powerups[i];
-    p.x -= speed;
+    p.x -= currentSpeed;
     if (p.x + p.w < -10) {
       powerups.splice(i, 1);
       continue;
@@ -715,8 +782,18 @@ window.addEventListener("keydown", (event) => {
     event.preventDefault();
     slide();
   }
+  if (event.code === "ArrowRight") {
+    event.preventDefault();
+    sprinting = true;
+  }
   if (event.code === "KeyR") {
     restart();
+  }
+});
+
+window.addEventListener("keyup", (event) => {
+  if (event.code === "ArrowRight") {
+    sprinting = false;
   }
 });
 
@@ -743,6 +820,8 @@ startBtn.addEventListener("click", startRun);
 jumpBtn.addEventListener("click", jump);
 slideBtn.addEventListener("click", slide);
 restartBtn.addEventListener("click", restart);
+restartStageZeroBtn.addEventListener("click", restartFromStageZero);
+resetEverythingBtn.addEventListener("click", resetEverything);
 reviveBtn.addEventListener("click", revive);
 upgradeJumpBtn.addEventListener("click", tryBuyJumpUpgrade);
 upgradeMagnetBtn.addEventListener("click", tryBuyMagnetUpgrade);
@@ -757,6 +836,7 @@ document.addEventListener("visibilitychange", () => {
   } else {
     ensureMusicPlayback();
   }
+  sprinting = false;
 });
 
 applyMusicSettings();

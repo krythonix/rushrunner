@@ -104,6 +104,16 @@ button {
   color: #052e2b;
 }
 
+#restart-stage-zero-btn {
+  background: #f97316;
+  color: #431407;
+}
+
+#reset-everything-btn {
+  background: #ef4444;
+  color: #450a0a;
+}
+
 #revive-btn {
   background: #fb7185;
   color: #4c0519;
@@ -225,14 +235,30 @@ button:disabled {
     grid-row: 3;
   }
 
-  #revive-btn {
+  #restart-stage-zero-btn {
     grid-column: 2;
     grid-row: 3;
   }
 
-  #music-toggle-btn {
+  #reset-everything-btn {
     grid-column: 1 / -1;
     grid-row: 4;
+    width: min(78%, 280px);
+    justify-self: center;
+  }
+
+  #revive-btn {
+    grid-column: 1;
+    grid-row: 5;
+  }
+
+  #music-toggle-btn {
+    grid-column: 2;
+    grid-row: 5;
+  }
+
+  #start-btn,
+  #music-toggle-btn {
     width: min(70%, 260px);
     justify-self: center;
   }
