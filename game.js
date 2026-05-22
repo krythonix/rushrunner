@@ -1081,6 +1081,29 @@ canvas.addEventListener("pointerup", (event) => {
   pointerStartY = null;
 });
 
+function preventDoubleTapZoom() {
+  let lastTouchEnd = 0;
+  document.addEventListener(
+    "touchend",
+    (event) => {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+      }
+      lastTouchEnd = now;
+    },
+    { passive: false },
+  );
+  document.addEventListener("dblclick", (event) => {
+    event.preventDefault();
+  });
+  document.addEventListener("gesturestart", (event) => {
+    event.preventDefault();
+  });
+}
+
+preventDoubleTapZoom();
+
 startBtn.addEventListener("click", startRun);
 jumpBtn.addEventListener("click", jump);
 slideBtn.addEventListener("click", slide);
