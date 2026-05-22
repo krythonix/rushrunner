@@ -6,33 +6,42 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>Runner Rush</title>
-    <link rel="stylesheet" href="./style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Russo+One&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./style.css?v=dev" />
   </head>
   <body>
     <main class="game-shell">
-      <header class="hud">
-        <div>
-          <h1>Runner Rush</h1>
-          <p class="subtitle">Arcade endless runner</p>
-        </div>
-        <div class="stats">
-          <span id="score">Score: 0</span>
-          <span id="coins-run">Run Coins: 0</span>
-          <span id="best-score">Best: 0</span>
-          <span id="bank-coins">Bank: 0</span>
-        </div>
-      </header>
-
-      <section class="meta-panel">
-        <span id="level">Level: 1</span>
-        <span id="mission">Mission: Collect 20 coins (0/20)</span>
-      </section>
-
       <div class="canvas-wrap">
+        <div class="score-panel">
+          <header class="hud">
+            <div class="hud-title">
+              <h1>Runner Rush</h1>
+              <p class="subtitle">Arcade endless runner</p>
+            </div>
+            <div class="stats">
+              <span id="score">Score: 0</span>
+              <span id="coins-run">Run Coins: 0</span>
+              <span id="best-score">Best: 0</span>
+              <span id="bank-coins">Bank: 0</span>
+            </div>
+          </header>
+          <section class="meta-panel">
+            <span id="level">Level: 1</span>
+            <span id="mission">Mission: Collect 20 coins (0/20)</span>
+          </section>
+        </div>
         <div class="canvas-stage">
           <canvas id="game-canvas" width="960" height="540"></canvas>
-          <button id="fullscreen-btn" type="button" aria-label="Enter fullscreen">⛶</button>
+          <button id="fullscreen-btn" type="button" aria-label="Enter fullscreen"></button>
         </div>
       </div>
 
@@ -56,13 +65,9 @@
       </section>
 
       <p class="instructions">Controls: Space=Jump, ArrowDown=Slide, tap upper canvas=jump, lower canvas=slide, R=Restart.</p>
-
-      <div id="rotate-hint" class="rotate-hint" hidden>
-        <p>Rotate your device to landscape</p>
-      </div>
     </main>
 
-    <audio id="bg-music" src="./assets/music/bg-loop.wav" loop preload="auto"></audio>
-    <script src="./game.js"></script>
+    <audio id="bg-music" src="./assets/music/bg-loop.wav?v=dev" loop preload="auto"></audio>
+    <script src="./game.js?v=dev"></script>
   </body>
 </html>

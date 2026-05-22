@@ -6,6 +6,20 @@ A richer endless runner prototype built with plain HTML/CSS/JavaScript.
 
 Open `index.html` in a browser.
 
+## Deploy / cache busting
+
+Static assets (`style.css`, `game.js`, audio) use a `?v=` query string so browsers fetch fresh files after each deploy.
+
+Before deploying manually, run:
+
+```bash
+bash scripts/inject-cache-version.sh
+```
+
+This sets `?v=` to the current git commit (or a timestamp if git is unavailable) in `index.html`. A GitHub Actions workflow (`.github/workflows/deploy.yml`) runs the same step automatically on push to `main`/`master` when using GitHub Pages.
+
+`index.html` also sends no-cache meta tags so the page shell is less likely to stay stale.
+
 ## Current features
 
 - Full run flow: menu, play, game-over, restart, one-run revive

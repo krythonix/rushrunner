@@ -19,13 +19,14 @@ const upgradeJumpBtn = document.getElementById("upgrade-jump-btn");
 const upgradeMagnetBtn = document.getElementById("upgrade-magnet-btn");
 const musicToggleBtn = document.getElementById("music-toggle-btn");
 const fullscreenBtn = document.getElementById("fullscreen-btn");
-const rotateHint = document.getElementById("rotate-hint");
 const gameShell = document.querySelector(".game-shell");
 const canvasWrap = document.querySelector(".canvas-wrap");
 const canvasStage = document.querySelector(".canvas-stage");
 const bgMusic = document.getElementById("bg-music");
 
 const GAME_ASPECT = 16 / 9;
+const FONT_TITLE = '"Press Start 2P", monospace';
+const FONT_UI = '"Russo One", sans-serif';
 
 const groundY = canvas.height - 68;
 const gravity = 0.84;
@@ -131,36 +132,47 @@ function canUseNativeFullscreen() {
   return !!(root.requestFullscreen || root.webkitRequestFullscreen);
 }
 
+const FULLSCREEN_ENTER_ICON =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>';
+const FULLSCREEN_EXIT_ICON =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>';
+
 function updateFullscreenButton() {
   if (!fullscreenBtn) {
     return;
   }
   const active = isFullscreenActive();
+  fullscreenBtn.innerHTML = active ? FULLSCREEN_EXIT_ICON : FULLSCREEN_ENTER_ICON;
   fullscreenBtn.setAttribute("aria-label", active ? "Exit fullscreen" : "Enter fullscreen");
 }
 
-function isTouchDevice() {
-  return window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+function applyForceLandscape() {
+  gameShell?.classList.add("force-landscape");
 }
 
-function updateRotateHint() {
-  if (!rotateHint) {
-    return;
-  }
-  const emulated = gameShell?.classList.contains("force-landscape");
-  const show = isFullscreenActive() && isSmallScreen() && isPortrait() && isTouchDevice() && !emulated;
-  rotateHint.hidden = !show;
-}
-
-function applyLandscapeEmulation() {
-  if (!gameShell || !isPortrait()) {
-    return;
-  }
-  gameShell.classList.add("force-landscape");
-}
-
-function clearLandscapeEmulation() {
+function clearForceLandscape() {
   gameShell?.classList.remove("force-landscape");
+}
+
+async function ensureLandscape() {
+  if (!isSmallScreen() || !isFullscreenActive()) {
+    return;
+  }
+  if (!isPortrait()) {
+    clearForceLandscape();
+    layoutCanvasStage();
+    return;
+  }
+  const locked = await lockLandscape();
+  if (!locked) {
+    applyForceLandscape();
+  } else {
+    clearForceLandscape();
+  }
+  requestAnimationFrame(() => {
+    layoutCanvasStage();
+    requestAnimationFrame(layoutCanvasStage);
+  });
 }
 
 async function lockLandscape() {
@@ -176,25 +188,6 @@ async function lockLandscape() {
     }
   }
   return false;
-}
-
-async function ensureLandscape() {
-  if (!isSmallScreen() || !isFullscreenActive()) {
-    return;
-  }
-  if (!isPortrait()) {
-    clearLandscapeEmulation();
-    updateRotateHint();
-    return;
-  }
-  const locked = await lockLandscape();
-  if (locked) {
-    clearLandscapeEmulation();
-  } else {
-    applyLandscapeEmulation();
-  }
-  layoutCanvasStage();
-  updateRotateHint();
 }
 
 function unlockOrientation() {
@@ -258,8 +251,8 @@ async function exitFullscreen() {
 
 function onEnterFullscreenMode() {
   gameShell?.classList.add("is-fullscreen");
-  updateFullscreenButton();
   if (isSmallScreen()) {
+    gameShell?.classList.add("canvas-only-fs");
     ensureLandscape();
     setTimeout(() => {
       ensureLandscape();
@@ -267,16 +260,14 @@ function onEnterFullscreenMode() {
     }, 300);
   }
   layoutCanvasStage();
-  updateRotateHint();
+  updateFullscreenButton();
 }
 
 function onExitFullscreenMode() {
-  gameShell?.classList.remove("is-fullscreen");
-  clearLandscapeEmulation();
+  gameShell?.classList.remove("is-fullscreen", "canvas-only-fs", "force-landscape");
   unlockOrientation();
   layoutCanvasStage();
   updateFullscreenButton();
-  updateRotateHint();
 }
 
 function enterPseudoFullscreen() {
@@ -284,9 +275,14 @@ function enterPseudoFullscreen() {
     return;
   }
   pseudoFullscreen = true;
+  document.documentElement.classList.add("pseudo-fullscreen-active");
   document.body.classList.add("pseudo-fullscreen-active");
   window.scrollTo(0, 0);
   onEnterFullscreenMode();
+  requestAnimationFrame(() => {
+    layoutCanvasStage();
+    requestAnimationFrame(layoutCanvasStage);
+  });
 }
 
 function exitPseudoFullscreen() {
@@ -294,6 +290,7 @@ function exitPseudoFullscreen() {
     return;
   }
   pseudoFullscreen = false;
+  document.documentElement.classList.remove("pseudo-fullscreen-active");
   document.body.classList.remove("pseudo-fullscreen-active");
   onExitFullscreenMode();
 }
@@ -312,7 +309,7 @@ async function toggleFullscreen() {
 }
 
 function layoutCanvasStage() {
-  if (!canvasStage) {
+  if (!canvasStage || !canvasWrap) {
     return;
   }
   if (!gameShell?.classList.contains("is-fullscreen")) {
@@ -320,8 +317,8 @@ function layoutCanvasStage() {
     canvasStage.style.height = "";
     return;
   }
-  const availW = canvasWrap?.clientWidth || 0;
-  const availH = canvasWrap?.clientHeight || 0;
+  const availW = canvasWrap.clientWidth;
+  const availH = canvasWrap.clientHeight;
   if (!availW || !availH) {
     return;
   }
@@ -348,7 +345,6 @@ function handleOrientationChange() {
     ensureLandscape();
   }
   layoutCanvasStage();
-  updateRotateHint();
 }
 
 function applyMusicSettings() {
@@ -998,16 +994,16 @@ function drawOverlay() {
   ctx.fillStyle = "#f8fafc";
   ctx.textAlign = "center";
   if (state === "menu") {
-    ctx.font = "bold 36px Arial";
+    ctx.font = `24px ${FONT_TITLE}`;
     ctx.fillText("Runner Rush", canvas.width / 2, canvas.height / 2 - 24);
-    ctx.font = "20px Arial";
+    ctx.font = `18px ${FONT_UI}`;
     ctx.fillText(`Stage ${save.currentStage} unlocked of ${save.unlockedStage}`, canvas.width / 2, canvas.height / 2 + 10);
     ctx.fillText("Press Start Run or Space", canvas.width / 2, canvas.height / 2 + 40);
   } else if (state === "stageclear") {
     const finishedAllStages = save.currentStage >= STAGES.length;
-    ctx.font = "bold 36px Arial";
+    ctx.font = `22px ${FONT_TITLE}`;
     ctx.fillText(finishedAllStages ? "Congratulations!" : "Stage Cleared!", canvas.width / 2, canvas.height / 2 - 24);
-    ctx.font = "20px Arial";
+    ctx.font = `18px ${FONT_UI}`;
     if (finishedAllStages) {
       ctx.fillText("You cleared all 10 stages!", canvas.width / 2, canvas.height / 2 + 10);
     } else {
@@ -1015,9 +1011,9 @@ function drawOverlay() {
     }
     ctx.fillText(finishedAllStages ? "Tap Restart to play again" : "Tap Restart to continue", canvas.width / 2, canvas.height / 2 + 40);
   } else {
-    ctx.font = "bold 38px Arial";
+    ctx.font = `26px ${FONT_TITLE}`;
     ctx.fillText("Game Over", canvas.width / 2, canvas.height / 2 - 12);
-    ctx.font = "20px Arial";
+    ctx.font = `18px ${FONT_UI}`;
     ctx.fillText("Retry the current stage", canvas.width / 2, canvas.height / 2 + 24);
   }
 }
@@ -1126,6 +1122,14 @@ document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
 window.addEventListener("orientationchange", handleOrientationChange);
 window.addEventListener("resize", handleOrientationChange);
 
+if (canvasWrap && typeof ResizeObserver !== "undefined") {
+  new ResizeObserver(() => {
+    if (gameShell?.classList.contains("is-fullscreen")) {
+      layoutCanvasStage();
+    }
+  }).observe(canvasWrap);
+}
+
 document.addEventListener("visibilitychange", () => {
   if (!bgMusic) {
     return;
@@ -1141,7 +1145,8 @@ document.addEventListener("visibilitychange", () => {
 applyMusicSettings();
 updateMusicButton();
 updateFullscreenButton();
-updateRotateHint();
 setState("menu");
 updateHud();
-requestAnimationFrame(loop);
+document.fonts.ready.then(() => {
+  requestAnimationFrame(loop);
+});
