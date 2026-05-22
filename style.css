@@ -268,7 +268,7 @@ html:fullscreen .game-shell.is-fullscreen.canvas-only-fs.force-landscape,
   height: 100dvw;
   max-width: none;
   max-height: none;
-  transform: translate(-50%, -50%) rotate(90deg);
+  transform: translate(-50%, -50%) rotate(-90deg);
   transform-origin: center center;
 }
 
@@ -303,7 +303,7 @@ html:fullscreen .game-shell.is-fullscreen.canvas-only-fs.force-landscape,
   border-radius: 0;
 }
 
-.game-shell.is-fullscreen.canvas-only-fs .score-panel {
+.game-shell.is-fullscreen.canvas-only-fs .score-panel:not(.score-panel--fs-fixed) {
   grid-area: 1 / 1;
   align-self: start;
   justify-self: center;
@@ -315,6 +315,42 @@ html:fullscreen .game-shell.is-fullscreen.canvas-only-fs.force-landscape,
   z-index: 4;
   color: #f8fafc;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+.score-panel--fs-fixed {
+  position: fixed;
+  top: max(6px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(calc(100vw - 12px), calc(100vh * 16 / 9));
+  z-index: 10002;
+  margin: 0;
+  padding: 6px;
+  pointer-events: none;
+  color: #f8fafc;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+.score-panel--fs-fixed .hud-title {
+  display: none;
+}
+
+.score-panel--fs-fixed .hud {
+  margin-bottom: 4px;
+}
+
+.score-panel--fs-fixed .stats {
+  justify-content: flex-start;
+  font-size: 0.95rem;
+  gap: 8px;
+  color: #f8fafc;
+}
+
+.score-panel--fs-fixed .meta-panel {
+  flex-direction: row;
+  font-size: 0.9rem;
+  gap: 8px;
+  color: #f8fafc;
 }
 
 .game-shell.is-fullscreen.canvas-only-fs .hud-title {
@@ -409,12 +445,12 @@ html:-webkit-full-screen .game-shell.is-fullscreen.canvas-only-fs {
     grid-area: 1 / 1;
   }
 
-  .score-panel {
+  .score-panel:not(.score-panel--fs-fixed) {
     grid-area: 1 / 1;
     align-self: start;
     justify-self: center;
     width: calc(100% - 12px);
-    max-width: min(100%, calc(76vh * 16 / 9));
+    max-width: min(calc(100vw - 12px), calc(100vh * 16 / 9));
     margin-bottom: 0;
     padding: 6px;
     pointer-events: none;

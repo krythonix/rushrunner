@@ -22,7 +22,10 @@ const fullscreenBtn = document.getElementById("fullscreen-btn");
 const gameShell = document.querySelector(".game-shell");
 const canvasWrap = document.querySelector(".canvas-wrap");
 const canvasStage = document.querySelector(".canvas-stage");
+const scorePanel = document.querySelector(".score-panel");
 const bgMusic = document.getElementById("bg-music");
+
+let scorePanelAnchor = null;
 
 const GAME_ASPECT = 16 / 9;
 const FONT_TITLE = '"Press Start 2P", monospace';
@@ -104,7 +107,17 @@ function isSmallScreen() {
 }
 
 function isPortrait() {
+  if (screen.orientation?.type) {
+    return screen.orientation.type.startsWith("portrait");
+  }
   return window.matchMedia("(orientation: portrait)").matches;
+}
+
+function isLandscape() {
+  if (screen.orientation?.type) {
+    return screen.orientation.type.startsWith("landscape");
+  }
+  return window.matchMedia("(orientation: landscape)").matches;
 }
 
 function isNativeFullscreen() {
@@ -154,17 +167,37 @@ function clearForceLandscape() {
   gameShell?.classList.remove("force-landscape");
 }
 
+function mountScorePanelForMobileFs() {
+  if (!scorePanel || !isSmallScreen() || scorePanel.classList.contains("score-panel--fs-fixed")) {
+    return;
+  }
+  scorePanelAnchor = scorePanel.parentElement;
+  document.body.appendChild(scorePanel);
+  scorePanel.classList.add("score-panel--fs-fixed");
+}
+
+function unmountScorePanelForMobileFs() {
+  if (!scorePanel || !scorePanel.classList.contains("score-panel--fs-fixed")) {
+    return;
+  }
+  scorePanel.classList.remove("score-panel--fs-fixed");
+  if (scorePanelAnchor) {
+    scorePanelAnchor.insertBefore(scorePanel, scorePanelAnchor.firstChild);
+  }
+  scorePanelAnchor = null;
+}
+
 async function ensureLandscape() {
   if (!isSmallScreen() || !isFullscreenActive()) {
     return;
   }
-  if (!isPortrait()) {
+  if (isLandscape()) {
     clearForceLandscape();
     layoutCanvasStage();
     return;
   }
   const locked = await lockLandscape();
-  if (!locked) {
+  if (!locked && isPortrait()) {
     applyForceLandscape();
   } else {
     clearForceLandscape();
@@ -253,6 +286,7 @@ function onEnterFullscreenMode() {
   gameShell?.classList.add("is-fullscreen");
   if (isSmallScreen()) {
     gameShell?.classList.add("canvas-only-fs");
+    mountScorePanelForMobileFs();
     ensureLandscape();
     setTimeout(() => {
       ensureLandscape();
@@ -264,6 +298,7 @@ function onEnterFullscreenMode() {
 }
 
 function onExitFullscreenMode() {
+  unmountScorePanelForMobileFs();
   gameShell?.classList.remove("is-fullscreen", "canvas-only-fs", "force-landscape");
   unlockOrientation();
   layoutCanvasStage();
@@ -1058,23 +1093,30 @@ window.addEventListener("keyup", (event) => {
   }
 });
 
-let pointerStartY = null;
-canvas.addEventListener("pointerdown", (event) => {
-  pointerStartY = event.clientY;
-});
-canvas.addEventListener("pointerup", (event) => {
-  const y = pointerStartY === null ? event.clientY : pointerStartY;
-  const rect = canvas.getBoundingClientRect();
+function handleCanvasPointer(offsetY) {
   if (state === "menu") {
     startRun();
-  } else if (state === "gameover") {
+    return;
+  }
+  if (state === "gameover") {
     restart();
-  } else if (y < rect.top + rect.height / 2) {
+    return;
+  }
+  if (offsetY < canvas.offsetHeight / 2) {
     jump();
   } else {
     slide();
   }
-  pointerStartY = null;
+}
+
+let pointerStartOffsetY = null;
+canvas.addEventListener("pointerdown", (event) => {
+  pointerStartOffsetY = event.offsetY;
+});
+canvas.addEventListener("pointerup", (event) => {
+  const offsetY = pointerStartOffsetY ?? event.offsetY;
+  pointerStartOffsetY = null;
+  handleCanvasPointer(offsetY);
 });
 
 function preventDoubleTapZoom() {
