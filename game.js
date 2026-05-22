@@ -25,8 +25,6 @@ const canvasStage = document.querySelector(".canvas-stage");
 const scorePanel = document.querySelector(".score-panel");
 const bgMusic = document.getElementById("bg-music");
 
-let scorePanelAnchor = null;
-
 const GAME_ASPECT = 16 / 9;
 const FONT_TITLE = '"Press Start 2P", monospace';
 const FONT_UI = '"Russo One", sans-serif';
@@ -103,20 +101,28 @@ function updateMusicButton() {
 }
 
 function isSmallScreen() {
-  return window.matchMedia("(max-width: 900px)").matches;
+  return window.matchMedia(
+    "(max-width: 900px), (orientation: landscape) and (max-height: 500px)"
+  ).matches;
+}
+
+function useLandscapeCanvasLayout() {
+  return isLandscape() && window.matchMedia("(max-height: 900px)").matches;
+}
+
+function usePortraitCanvasHud() {
+  return isPortrait() && window.matchMedia("(max-width: 900px)").matches;
+}
+
+function useCanvasHudLayout() {
+  return useLandscapeCanvasLayout() || usePortraitCanvasHud();
 }
 
 function isPortrait() {
-  if (screen.orientation?.type) {
-    return screen.orientation.type.startsWith("portrait");
-  }
   return window.matchMedia("(orientation: portrait)").matches;
 }
 
 function isLandscape() {
-  if (screen.orientation?.type) {
-    return screen.orientation.type.startsWith("landscape");
-  }
   return window.matchMedia("(orientation: landscape)").matches;
 }
 
@@ -160,31 +166,11 @@ function updateFullscreenButton() {
 }
 
 function applyForceLandscape() {
-  gameShell?.classList.add("force-landscape");
+  canvasWrap?.classList.add("force-landscape");
 }
 
 function clearForceLandscape() {
-  gameShell?.classList.remove("force-landscape");
-}
-
-function mountScorePanelForMobileFs() {
-  if (!scorePanel || !isSmallScreen() || scorePanel.classList.contains("score-panel--fs-fixed")) {
-    return;
-  }
-  scorePanelAnchor = scorePanel.parentElement;
-  document.body.appendChild(scorePanel);
-  scorePanel.classList.add("score-panel--fs-fixed");
-}
-
-function unmountScorePanelForMobileFs() {
-  if (!scorePanel || !scorePanel.classList.contains("score-panel--fs-fixed")) {
-    return;
-  }
-  scorePanel.classList.remove("score-panel--fs-fixed");
-  if (scorePanelAnchor) {
-    scorePanelAnchor.insertBefore(scorePanel, scorePanelAnchor.firstChild);
-  }
-  scorePanelAnchor = null;
+  canvasWrap?.classList.remove("force-landscape");
 }
 
 async function ensureLandscape() {
@@ -196,11 +182,12 @@ async function ensureLandscape() {
     layoutCanvasStage();
     return;
   }
-  const locked = await lockLandscape();
-  if (!locked && isPortrait()) {
-    applyForceLandscape();
-  } else {
+  await lockLandscape();
+  // Re-check after lock: some browsers report success without actually rotating.
+  if (isLandscape()) {
     clearForceLandscape();
+  } else if (isPortrait()) {
+    applyForceLandscape();
   }
   requestAnimationFrame(() => {
     layoutCanvasStage();
@@ -286,7 +273,6 @@ function onEnterFullscreenMode() {
   gameShell?.classList.add("is-fullscreen");
   if (isSmallScreen()) {
     gameShell?.classList.add("canvas-only-fs");
-    mountScorePanelForMobileFs();
     ensureLandscape();
     setTimeout(() => {
       ensureLandscape();
@@ -298,8 +284,8 @@ function onEnterFullscreenMode() {
 }
 
 function onExitFullscreenMode() {
-  unmountScorePanelForMobileFs();
-  gameShell?.classList.remove("is-fullscreen", "canvas-only-fs", "force-landscape");
+  clearForceLandscape();
+  gameShell?.classList.remove("is-fullscreen", "canvas-only-fs");
   unlockOrientation();
   layoutCanvasStage();
   updateFullscreenButton();
@@ -347,9 +333,17 @@ function layoutCanvasStage() {
   if (!canvasStage || !canvasWrap) {
     return;
   }
-  if (!gameShell?.classList.contains("is-fullscreen")) {
+  const isFs = gameShell?.classList.contains("is-fullscreen");
+  const forceLandscape = canvasWrap?.classList.contains("force-landscape");
+  const portraitFs =
+    isFs && isPortrait() && !forceLandscape && gameShell?.classList.contains("canvas-only-fs");
+  const useLayout = isFs || useCanvasHudLayout();
+  if (!useLayout) {
     canvasStage.style.width = "";
     canvasStage.style.height = "";
+    if (scorePanel) {
+      scorePanel.style.width = "";
+    }
     return;
   }
   const availW = canvasWrap.clientWidth;
@@ -357,14 +351,34 @@ function layoutCanvasStage() {
   if (!availW || !availH) {
     return;
   }
-  let width = availW;
-  let height = width / GAME_ASPECT;
-  if (height > availH) {
+  let width;
+  let height;
+  if (portraitFs) {
+    // Portrait fullscreen: fit 16:9 canvas in the space below the score bar.
+    width = availW;
+    height = width / GAME_ASPECT;
+    if (height > availH) {
+      height = availH;
+      width = height * GAME_ASPECT;
+    }
+  } else {
+    // Landscape / overlay HUD: max height 100%, width auto from aspect ratio.
     height = availH;
     width = height * GAME_ASPECT;
+    if (width > availW) {
+      width = availW;
+      height = width / GAME_ASPECT;
+    }
   }
-  canvasStage.style.width = `${Math.floor(width)}px`;
-  canvasStage.style.height = `${Math.floor(height)}px`;
+  const w = Math.floor(width);
+  const h = Math.floor(height);
+  canvasStage.style.width = `${w}px`;
+  canvasStage.style.height = `${h}px`;
+  if (scorePanel && (useCanvasHudLayout() || forceLandscape || isFs)) {
+    scorePanel.style.width = `${w}px`;
+  } else if (scorePanel) {
+    scorePanel.style.width = "";
+  }
 }
 
 function handleFullscreenChange() {
@@ -381,6 +395,12 @@ function handleOrientationChange() {
   }
   layoutCanvasStage();
 }
+
+layoutCanvasStage();
+requestAnimationFrame(() => {
+  layoutCanvasStage();
+  requestAnimationFrame(layoutCanvasStage);
+});
 
 function applyMusicSettings() {
   if (!bgMusic) {
@@ -1163,10 +1183,12 @@ document.addEventListener("fullscreenchange", handleFullscreenChange);
 document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
 window.addEventListener("orientationchange", handleOrientationChange);
 window.addEventListener("resize", handleOrientationChange);
+window.visualViewport?.addEventListener("resize", handleOrientationChange);
+window.visualViewport?.addEventListener("scroll", handleOrientationChange);
 
 if (canvasWrap && typeof ResizeObserver !== "undefined") {
   new ResizeObserver(() => {
-    if (gameShell?.classList.contains("is-fullscreen")) {
+    if (gameShell?.classList.contains("is-fullscreen") || useCanvasHudLayout()) {
       layoutCanvasStage();
     }
   }).observe(canvasWrap);

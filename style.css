@@ -95,6 +95,8 @@ body {
   aspect-ratio: 16 / 9;
   max-height: 76vh;
   touch-action: none;
+  overflow: visible;
+  z-index: 1;
 }
 
 #game-canvas {
@@ -109,9 +111,9 @@ body {
 
 #fullscreen-btn {
   position: absolute;
-  right: 10px;
-  bottom: 10px;
-  z-index: 5;
+  right: max(10px, env(safe-area-inset-right, 0px));
+  bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  z-index: 10;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -257,9 +259,10 @@ body.pseudo-fullscreen-active .game-shell.is-fullscreen {
   padding: 0;
 }
 
-body.pseudo-fullscreen-active .game-shell.is-fullscreen.canvas-only-fs.force-landscape,
-html:fullscreen .game-shell.is-fullscreen.canvas-only-fs.force-landscape,
-.game-shell.is-fullscreen.canvas-only-fs.force-landscape {
+body.pseudo-fullscreen-active .game-shell.is-fullscreen.canvas-only-fs .canvas-wrap.force-landscape,
+html:fullscreen .game-shell.is-fullscreen.canvas-only-fs .canvas-wrap.force-landscape,
+.game-shell.is-fullscreen.canvas-only-fs .canvas-wrap.force-landscape {
+  position: absolute;
   top: 50%;
   left: 50%;
   right: auto;
@@ -273,6 +276,8 @@ html:fullscreen .game-shell.is-fullscreen.canvas-only-fs.force-landscape,
 }
 
 .game-shell.is-fullscreen.canvas-only-fs {
+  position: relative;
+  overflow: hidden;
   padding: 0;
   background: #0f172a;
 }
@@ -290,24 +295,28 @@ html:fullscreen .game-shell.is-fullscreen.canvas-only-fs.force-landscape,
   min-height: 0;
   display: grid;
   place-items: center;
+  overflow: visible;
+  padding: max(4px, env(safe-area-inset-top, 0px)) max(4px, env(safe-area-inset-right, 0px))
+    max(4px, env(safe-area-inset-bottom, 0px)) max(4px, env(safe-area-inset-left, 0px));
 }
 
 .game-shell.is-fullscreen.canvas-only-fs .canvas-stage {
   grid-area: 1 / 1;
-  aspect-ratio: 16 / 9;
+  position: relative;
+  z-index: 1;
   flex-shrink: 0;
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: auto;
+  overflow: visible;
 }
 
-.game-shell.is-fullscreen.canvas-only-fs #game-canvas {
-  border: none;
-  border-radius: 0;
-}
-
-.game-shell.is-fullscreen.canvas-only-fs .score-panel:not(.score-panel--fs-fixed) {
+.game-shell.is-fullscreen.canvas-only-fs .score-panel {
   grid-area: 1 / 1;
+  position: relative;
   align-self: start;
   justify-self: center;
-  width: calc(100% - 12px);
+  width: 100%;
   max-width: 100%;
   margin-bottom: 0;
   padding: 6px;
@@ -317,62 +326,86 @@ html:fullscreen .game-shell.is-fullscreen.canvas-only-fs.force-landscape,
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
 }
 
-.score-panel--fs-fixed {
-  position: fixed;
-  top: max(6px, env(safe-area-inset-top));
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(calc(100vw - 12px), calc(100vh * 16 / 9));
-  z-index: 10002;
-  margin: 0;
-  padding: 6px;
-  pointer-events: none;
-  color: #f8fafc;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
-}
-
-.score-panel--fs-fixed .hud-title {
+.game-shell.is-fullscreen.canvas-only-fs .score-panel .hud-title {
   display: none;
 }
 
-.score-panel--fs-fixed .hud {
-  margin-bottom: 4px;
-}
-
-.score-panel--fs-fixed .stats {
-  justify-content: flex-start;
-  font-size: 0.95rem;
-  gap: 8px;
-  color: #f8fafc;
-}
-
-.score-panel--fs-fixed .meta-panel {
+.game-shell.is-fullscreen.canvas-only-fs .score-panel .hud {
   flex-direction: row;
-  font-size: 0.9rem;
-  gap: 8px;
-  color: #f8fafc;
+  align-items: center;
+  margin-bottom: 2px;
+  gap: 4px;
 }
 
-.game-shell.is-fullscreen.canvas-only-fs .hud-title {
-  display: none;
-}
-
-.game-shell.is-fullscreen.canvas-only-fs .hud {
-  margin-bottom: 4px;
-}
-
-.game-shell.is-fullscreen.canvas-only-fs .stats {
+.game-shell.is-fullscreen.canvas-only-fs .score-panel .stats {
   justify-content: flex-start;
-  font-size: 0.95rem;
-  gap: 8px;
+  font-size: 0.92rem;
+  gap: 6px 10px;
   color: #f8fafc;
 }
 
-.game-shell.is-fullscreen.canvas-only-fs .meta-panel {
+.game-shell.is-fullscreen.canvas-only-fs .score-panel .meta-panel {
   flex-direction: row;
-  font-size: 0.9rem;
-  gap: 8px;
+  align-items: center;
+  font-size: 0.88rem;
+  gap: 10px;
   color: #f8fafc;
+}
+
+.game-shell.is-fullscreen.canvas-only-fs #game-canvas {
+  border: none;
+  border-radius: 0;
+}
+
+@media (orientation: portrait) {
+  .game-shell.is-fullscreen.canvas-only-fs .canvas-wrap:not(.force-landscape) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: max(6px, env(safe-area-inset-top, 0px)) max(6px, env(safe-area-inset-right, 0px))
+      max(6px, env(safe-area-inset-bottom, 0px)) max(6px, env(safe-area-inset-left, 0px));
+  }
+
+  .game-shell.is-fullscreen.canvas-only-fs .canvas-wrap:not(.force-landscape) .score-panel {
+    grid-area: unset;
+    position: relative;
+    align-self: stretch;
+    flex-shrink: 0;
+    width: 100%;
+    max-width: none;
+    margin-bottom: 6px;
+    padding: 0 4px;
+    pointer-events: auto;
+    color: #f8fafc;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  }
+
+  .game-shell.is-fullscreen.canvas-only-fs .canvas-wrap:not(.force-landscape) .score-panel .hud-title {
+    display: none;
+  }
+
+  .game-shell.is-fullscreen.canvas-only-fs .canvas-wrap:not(.force-landscape) .score-panel .hud {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 2px;
+    gap: 4px;
+  }
+
+  .game-shell.is-fullscreen.canvas-only-fs .canvas-wrap:not(.force-landscape) .score-panel .meta-panel {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .game-shell.is-fullscreen.canvas-only-fs .canvas-wrap:not(.force-landscape) .canvas-stage {
+    grid-area: unset;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: 100%;
+  }
 }
 
 html:fullscreen,
@@ -414,7 +447,6 @@ html:-webkit-full-screen .game-shell.is-fullscreen.canvas-only-fs {
 .game-shell:fullscreen .canvas-stage,
 .game-shell:-webkit-full-screen .canvas-stage,
 .game-shell.is-fullscreen .canvas-stage {
-  aspect-ratio: 16 / 9;
   max-width: 100%;
   max-height: 100%;
   flex-shrink: 0;
@@ -435,22 +467,125 @@ html:-webkit-full-screen .game-shell.is-fullscreen.canvas-only-fs {
   display: none;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 900px) and (orientation: portrait) {
+  body {
+    display: block;
+    padding: 4px;
+  }
+
+  .game-shell {
+    width: 100%;
+  }
+
   .canvas-wrap {
     display: grid;
     place-items: center;
+    width: 100%;
+    overflow: visible;
   }
 
   .canvas-stage {
     grid-area: 1 / 1;
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 100%;
+    max-height: min(56dvh, calc(100vw * 9 / 16));
+    aspect-ratio: 16 / 9;
   }
 
-  .score-panel:not(.score-panel--fs-fixed) {
+  .score-panel {
     grid-area: 1 / 1;
+    position: relative;
     align-self: start;
     justify-self: center;
-    width: calc(100% - 12px);
-    max-width: min(calc(100vw - 12px), calc(100vh * 16 / 9));
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 0;
+    padding: 8px 10px;
+    pointer-events: none;
+    z-index: 4;
+    color: #f8fafc;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  }
+
+  .score-panel .stats,
+  .score-panel .meta-panel {
+    color: #f8fafc;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  }
+
+  .score-panel .hud-title {
+    display: none;
+  }
+
+  .score-panel .hud {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 2px;
+    gap: 4px;
+  }
+
+  .score-panel .stats {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    gap: 4px 8px;
+  }
+
+  .score-panel .meta-panel {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    font-size: 0.76rem;
+    gap: 6px 10px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 900px) {
+  body {
+    display: block;
+    padding: 4px;
+  }
+
+  .game-shell {
+    width: 100%;
+    min-height: auto;
+    height: 100dvh;
+    max-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    overflow: hidden;
+  }
+
+  .canvas-wrap {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    display: grid;
+    place-items: center;
+    overflow: visible;
+  }
+
+  .canvas-stage {
+    grid-area: 1 / 1;
+    position: relative;
+    z-index: 1;
+    width: auto;
+    height: 100%;
+    max-height: 100%;
+    max-width: 100%;
+    aspect-ratio: 16 / 9;
+  }
+
+  .score-panel {
+    grid-area: 1 / 1;
+    position: relative;
+    align-self: start;
+    justify-self: center;
+    width: 100%;
+    max-width: 100%;
     margin-bottom: 0;
     padding: 6px;
     pointer-events: none;
@@ -485,6 +620,13 @@ html:-webkit-full-screen .game-shell.is-fullscreen.canvas-only-fs {
     color: #f8fafc;
   }
 
+  .controls {
+    flex-shrink: 0;
+    margin-top: 6px;
+  }
+}
+
+@media (max-width: 900px) {
   .game-shell:fullscreen,
   .game-shell:-webkit-full-screen,
   .game-shell.is-fullscreen:not(.canvas-only-fs) {
@@ -563,7 +705,7 @@ html:-webkit-full-screen .game-shell.is-fullscreen.canvas-only-fs {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 640px) and (orientation: portrait) {
   body {
     display: block;
     padding: 4px;
@@ -589,18 +731,24 @@ html:-webkit-full-screen .game-shell.is-fullscreen.canvas-only-fs {
   }
 
   .canvas-stage {
-    width: min(100%, calc(72dvh * 16 / 9));
-    max-height: 72dvh;
+    width: 100%;
+    max-width: 100%;
+    max-height: min(56dvh, calc(100vw * 9 / 16));
+    aspect-ratio: 16 / 9;
   }
 
   #fullscreen-btn {
-    right: 8px;
-    bottom: 8px;
-    padding: 10px 12px;
+    right: max(8px, env(safe-area-inset-right, 0px));
+    bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    padding: 10px;
     width: auto;
     min-height: auto;
+    min-width: 40px;
+    min-height: 40px;
   }
+}
 
+@media (max-width: 640px) {
   .controls,
   .shop-actions {
     display: grid;
