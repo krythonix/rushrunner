@@ -127,6 +127,21 @@ const BIOME_PALETTES = {
   },
 };
 
+/**
+ * Post-game preview — flip on for local testing, off before release.
+ * URL shortcuts: ?postgame=1 (World 2), ?postgame=20 (final stage), ?postgame=endless
+ */
+const GAME_CONFIG = {
+  unlockPostGame: false,
+  startStage: 11,
+  unlockEndless: true,
+  startInEndlessMode: false,
+  demoBankCoins: 0,
+};
+
+let endlessMode = false;
+let previewMode = false;
+
 const saveKey = "runner_rush_save_v3";
 const defaultSave = {
   bestScore: 0,
@@ -144,12 +159,45 @@ save.unlockedStage = Math.max(1, Math.min(STAGES.length, save.unlockedStage));
 save.currentStage = Math.max(1, Math.min(save.unlockedStage, save.currentStage));
 save.endlessUnlocked = !!save.endlessUnlocked;
 save.endlessBest = Math.max(0, save.endlessBest || 0);
-if (save.unlockedStage >= 10 && STAGES.length > 10 && save.unlockedStage < 11) {
+if (save.unlockedStage === 10 && STAGES.length > 10) {
   save.unlockedStage = 11;
-  if (save.currentStage === 10) {
+}
+
+function applyGameConfig() {
+  const params = new URLSearchParams(window.location.search);
+  const postgameParam = params.get("postgame");
+  previewMode = GAME_CONFIG.unlockPostGame || postgameParam !== null;
+  if (!previewMode) {
+    return;
+  }
+
+  save.unlockedStage = STAGES.length;
+
+  if (postgameParam === "endless") {
+    save.endlessUnlocked = true;
+    endlessMode = true;
+  } else if (postgameParam === "20" || postgameParam === "final") {
+    save.currentStage = STAGES.length;
+    save.endlessUnlocked = true;
+  } else if (postgameParam === "1" || postgameParam === "11" || postgameParam === "world2") {
     save.currentStage = 11;
+    save.endlessUnlocked = true;
+  } else {
+    save.currentStage = Math.max(1, Math.min(STAGES.length, GAME_CONFIG.startStage || STAGES.length));
+    if (GAME_CONFIG.unlockEndless) {
+      save.endlessUnlocked = true;
+    }
+    if (GAME_CONFIG.startInEndlessMode) {
+      endlessMode = true;
+    }
+  }
+
+  if (GAME_CONFIG.demoBankCoins > 0) {
+    save.bankCoins = Math.max(save.bankCoins, GAME_CONFIG.demoBankCoins);
   }
 }
+
+applyGameConfig();
 
 const player = {
   x: 90,
@@ -178,7 +226,6 @@ let obstacleTimer = 0;
 let coinTimer = 0;
 let powerupTimer = 0;
 let state = "menu";
-let endlessMode = false;
 let reviveUsed = false;
 let sprinting = false;
 const EARLY_OBSTACLE_GRACE_FRAMES = 220;
@@ -537,6 +584,9 @@ function endlessRunScore() {
 }
 
 function persistSave() {
+  if (previewMode) {
+    return;
+  }
   localStorage.setItem(saveKey, JSON.stringify(save));
 }
 
@@ -935,7 +985,10 @@ function update() {
     powerupTimer = 0;
   }
 
-  speed = Math.min(endlessMode ? 9.4 : 8.2, speed + stage.accel);
+  speed += stage.accel;
+  if (endlessMode) {
+    speed = Math.min(9.4, speed);
+  }
   score += 0.17 + currentSpeed * 0.012;
   if (player.grounded && !player.sliding && frame % 10 === 0) {
     emitDust(player.x + 6, groundY, false);
@@ -1391,6 +1444,9 @@ updateMusicButton();
 updateFullscreenButton();
 setState("menu");
 updateHud();
+if (GAME_CONFIG.startInEndlessMode && save.endlessUnlocked) {
+  startEndlessRun();
+}
 document.fonts.ready.then(() => {
   requestAnimationFrame(loop);
 });
