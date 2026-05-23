@@ -1,7 +1,7 @@
 const CACHE_VERSION = "ecaed7e";
 const CACHE_NAME = `runner-rush-${CACHE_VERSION}`;
 
-const withV = (path) => `${path}?v=ecaed7e
+const withV = (path) => `${path}?v=${CACHE_VERSION}`;
 const PRECACHE = [
   "./",
   "./index.html",

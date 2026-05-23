@@ -17,7 +17,6 @@ fi
 
 perl -pi -e "s/\\?v=[^\"']+/\\?v=$VERSION/g" "$INDEX"
 perl -pi -e "s/^const CACHE_VERSION = \"[^\"]+\";/const CACHE_VERSION = \"$VERSION\";/" "$ROOT/sw.js"
-perl -pi -e "s/\\?v=[^\"']+/\\?v=$VERSION/g" "$ROOT/sw.js"
 printf '%s\n' "$VERSION" > "$ROOT/.cache-version"
 
 echo "Cache bust version set to $VERSION"

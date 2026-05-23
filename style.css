@@ -229,6 +229,56 @@ button:disabled {
   font-size: 0.9rem;
 }
 
+.install-banner {
+  position: fixed;
+  left: max(10px, env(safe-area-inset-left, 0px));
+  right: max(10px, env(safe-area-inset-right, 0px));
+  bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  z-index: 10010;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.94);
+  color: #f8fafc;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.install-banner.hidden {
+  display: none;
+}
+
+.install-banner p {
+  margin: 0 0 10px;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.install-banner-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.install-banner-actions button {
+  flex: 1;
+  min-height: 44px;
+  padding: 10px 12px;
+  font-size: 0.92rem;
+}
+
+#install-app-btn {
+  background: #22c55e;
+  color: #052e16;
+}
+
+#install-app-btn.hidden {
+  display: none;
+}
+
+#install-dismiss-btn {
+  background: #475569;
+  color: #f8fafc;
+}
+
 .game-shell:fullscreen,
 .game-shell:-webkit-full-screen,
 .game-shell.is-fullscreen {
