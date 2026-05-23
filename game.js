@@ -35,26 +35,26 @@ const gravity = 0.84;
 const baseJumpForce = -14.8;
 
 const STAGES = [
-  { name: "Sunny Trail", targetScore: 90, startSpeed: 3.0, accel: 0.00065, spawn: 80, boss: false, biome: "grass" },
+  { name: "Sunny Trail", targetScore: 90, startSpeed: 3.0, accel: 0.00065, spawn: 80, boss: false, biome: "meadow" },
   { name: "Dry Plains", targetScore: 120, startSpeed: 3.3, accel: 0.00075, spawn: 76, boss: false, biome: "grass" },
   { name: "Rock Dust", targetScore: 150, startSpeed: 3.6, accel: 0.00085, spawn: 72, boss: false, biome: "desert" },
   { name: "Windy Ridge", targetScore: 185, startSpeed: 3.9, accel: 0.00095, spawn: 68, boss: false, biome: "dusk" },
-  { name: "Boss: Thorn Lord", targetScore: 230, startSpeed: 4.0, accel: 0.00105, spawn: 64, boss: true, biome: "grass" },
-  { name: "Sunset Dunes", targetScore: 275, startSpeed: 4.3, accel: 0.00115, spawn: 60, boss: false, biome: "desert" },
+  { name: "Boss: Thorn Lord", targetScore: 230, startSpeed: 4.0, accel: 0.00105, spawn: 64, boss: true, biome: "thorn" },
+  { name: "Sunset Dunes", targetScore: 275, startSpeed: 4.3, accel: 0.00115, spawn: 60, boss: false, biome: "sunset" },
   { name: "Wild Barrens", targetScore: 320, startSpeed: 4.6, accel: 0.0012, spawn: 56, boss: false, biome: "storm" },
-  { name: "Storm Flats", targetScore: 365, startSpeed: 4.9, accel: 0.00125, spawn: 53, boss: false, biome: "storm" },
+  { name: "Storm Flats", targetScore: 365, startSpeed: 4.9, accel: 0.00125, spawn: 53, boss: false, biome: "rain" },
   { name: "Night Canyons", targetScore: 420, startSpeed: 5.1, accel: 0.0013, spawn: 50, boss: false, biome: "night" },
-  { name: "Final Boss: Cactus King", targetScore: 480, startSpeed: 5.4, accel: 0.0014, spawn: 46, boss: true, biome: "night" },
+  { name: "Final Boss: Cactus King", targetScore: 480, startSpeed: 5.4, accel: 0.0014, spawn: 46, boss: true, biome: "canyon" },
   { name: "Frozen Tundra", targetScore: 540, startSpeed: 5.6, accel: 0.00145, spawn: 44, boss: false, biome: "frost" },
-  { name: "Ice Ravine", targetScore: 600, startSpeed: 5.8, accel: 0.0015, spawn: 42, boss: false, biome: "frost" },
-  { name: "Glacier Pass", targetScore: 660, startSpeed: 6.0, accel: 0.00155, spawn: 40, boss: false, biome: "frost" },
-  { name: "Blizzard Peak", targetScore: 720, startSpeed: 6.2, accel: 0.0016, spawn: 38, boss: false, biome: "frost" },
-  { name: "Boss: Frost Titan", targetScore: 790, startSpeed: 6.3, accel: 0.00165, spawn: 36, boss: true, biome: "frost" },
-  { name: "Ember Wastes", targetScore: 860, startSpeed: 6.5, accel: 0.0017, spawn: 34, boss: false, biome: "ash" },
-  { name: "Magma Fields", targetScore: 930, startSpeed: 6.7, accel: 0.00175, spawn: 32, boss: false, biome: "ash" },
+  { name: "Ice Ravine", targetScore: 600, startSpeed: 5.8, accel: 0.0015, spawn: 42, boss: false, biome: "ice" },
+  { name: "Glacier Pass", targetScore: 660, startSpeed: 6.0, accel: 0.00155, spawn: 40, boss: false, biome: "glacier" },
+  { name: "Blizzard Peak", targetScore: 720, startSpeed: 6.2, accel: 0.0016, spawn: 38, boss: false, biome: "blizzard" },
+  { name: "Boss: Frost Titan", targetScore: 790, startSpeed: 6.3, accel: 0.00165, spawn: 36, boss: true, biome: "titan" },
+  { name: "Ember Wastes", targetScore: 860, startSpeed: 6.5, accel: 0.0017, spawn: 34, boss: false, biome: "ember" },
+  { name: "Magma Fields", targetScore: 930, startSpeed: 6.7, accel: 0.00175, spawn: 32, boss: false, biome: "magma" },
   { name: "Ash Storm", targetScore: 1000, startSpeed: 6.9, accel: 0.0018, spawn: 30, boss: false, biome: "ash" },
-  { name: "Scorched Void", targetScore: 1080, startSpeed: 7.1, accel: 0.00185, spawn: 28, boss: false, biome: "ash" },
-  { name: "Final Boss: Inferno Lord", targetScore: 1180, startSpeed: 7.3, accel: 0.00195, spawn: 26, boss: true, biome: "ash" },
+  { name: "Scorched Void", targetScore: 1080, startSpeed: 7.1, accel: 0.00185, spawn: 28, boss: false, biome: "void" },
+  { name: "Final Boss: Inferno Lord", targetScore: 1180, startSpeed: 7.3, accel: 0.00195, spawn: 26, boss: true, biome: "inferno" },
 ];
 
 const ENDLESS_CONFIG = {
@@ -64,11 +64,25 @@ const ENDLESS_CONFIG = {
   accel: 0.0021,
   spawn: 24,
   boss: true,
-  biome: "storm",
+  biome: "aurora",
   endless: true,
 };
 
 const BIOME_PALETTES = {
+  meadow: {
+    sky: ["#7dd3fc", "#ecfccb"],
+    ground: "#84cc16",
+    hills: "#65a30d",
+    dunes: "rgba(190, 242, 100, 0.35)",
+    line: "#4d7c0f",
+    clouds: "rgba(255,255,255,0.9)",
+    obs: ["#14532d", "#15803d", "#166534"],
+    obsStroke: "rgba(220, 252, 231, 0.45)",
+    obsSpine: "#dcfce7",
+    coin: ["#fef08a", "#eab308"],
+    dust: "rgba(101, 163, 13, 0.45)",
+    effect: "sun",
+  },
   grass: {
     sky: ["#8bd5ff", "#d7f1ff"],
     ground: "#8bc34a",
@@ -76,6 +90,12 @@ const BIOME_PALETTES = {
     dunes: "rgba(126, 90, 47, 0.22)",
     line: "#6b8f2a",
     clouds: "rgba(255,255,255,0.85)",
+    obs: ["#14532d", "#15803d", "#166534"],
+    obsStroke: "rgba(187, 247, 208, 0.35)",
+    obsSpine: "#dcfce7",
+    coin: ["#fde68a", "#f59e0b"],
+    dust: "rgba(120, 97, 67, 0.45)",
+    effect: "none",
   },
   desert: {
     sky: ["#fdba74", "#fef3c7"],
@@ -84,6 +104,12 @@ const BIOME_PALETTES = {
     dunes: "rgba(120, 53, 15, 0.28)",
     line: "#92400e",
     clouds: "rgba(255,255,255,0.55)",
+    obs: ["#78350f", "#a16207", "#ca8a04"],
+    obsStroke: "rgba(254, 243, 199, 0.35)",
+    obsSpine: "#fef3c7",
+    coin: ["#fcd34d", "#d97706"],
+    dust: "rgba(180, 83, 9, 0.4)",
+    effect: "sun",
   },
   dusk: {
     sky: ["#7c3aed", "#fb7185"],
@@ -92,6 +118,40 @@ const BIOME_PALETTES = {
     dunes: "rgba(88, 28, 135, 0.24)",
     line: "#4d7c0f",
     clouds: "rgba(254, 243, 199, 0.45)",
+    obs: ["#4c1d95", "#6d28d9", "#7c3aed"],
+    obsStroke: "rgba(233, 213, 255, 0.35)",
+    obsSpine: "#ede9fe",
+    coin: ["#f9a8d4", "#db2777"],
+    dust: "rgba(124, 58, 237, 0.35)",
+    effect: "none",
+  },
+  thorn: {
+    sky: ["#14532d", "#166534"],
+    ground: "#3f6212",
+    hills: "#365314",
+    dunes: "rgba(20, 83, 45, 0.45)",
+    line: "#1a2e05",
+    clouds: "rgba(74, 222, 128, 0.25)",
+    obs: ["#052e16", "#14532d", "#166534"],
+    obsStroke: "rgba(134, 239, 172, 0.45)",
+    obsSpine: "#bbf7d0",
+    coin: ["#86efac", "#16a34a"],
+    dust: "rgba(21, 128, 61, 0.45)",
+    effect: "none",
+  },
+  sunset: {
+    sky: ["#f97316", "#fde047"],
+    ground: "#ea580c",
+    hills: "#c2410c",
+    dunes: "rgba(124, 45, 18, 0.32)",
+    line: "#9a3412",
+    clouds: "rgba(255, 237, 213, 0.55)",
+    obs: ["#7c2d12", "#c2410c", "#ea580c"],
+    obsStroke: "rgba(254, 215, 170, 0.4)",
+    obsSpine: "#ffedd5",
+    coin: ["#fdba74", "#ea580c"],
+    dust: "rgba(194, 65, 12, 0.42)",
+    effect: "sun",
   },
   storm: {
     sky: ["#64748b", "#94a3b8"],
@@ -100,6 +160,26 @@ const BIOME_PALETTES = {
     dunes: "rgba(30, 41, 59, 0.35)",
     line: "#365314",
     clouds: "rgba(203, 213, 225, 0.7)",
+    obs: ["#1e293b", "#334155", "#475569"],
+    obsStroke: "rgba(203, 213, 225, 0.35)",
+    obsSpine: "#e2e8f0",
+    coin: ["#cbd5e1", "#64748b"],
+    dust: "rgba(51, 65, 85, 0.45)",
+    effect: "stars",
+  },
+  rain: {
+    sky: ["#334155", "#64748b"],
+    ground: "#3f6212",
+    hills: "#365314",
+    dunes: "rgba(15, 23, 42, 0.4)",
+    line: "#365314",
+    clouds: "rgba(148, 163, 184, 0.75)",
+    obs: ["#0f172a", "#1e293b", "#334155"],
+    obsStroke: "rgba(186, 230, 253, 0.35)",
+    obsSpine: "#bae6fd",
+    coin: ["#7dd3fc", "#0284c7"],
+    dust: "rgba(71, 85, 105, 0.45)",
+    effect: "rain",
   },
   night: {
     sky: ["#0f172a", "#312e81"],
@@ -108,6 +188,26 @@ const BIOME_PALETTES = {
     dunes: "rgba(15, 23, 42, 0.45)",
     line: "#14532d",
     clouds: "rgba(148, 163, 184, 0.35)",
+    obs: ["#172554", "#1e3a8a", "#1d4ed8"],
+    obsStroke: "rgba(191, 219, 254, 0.35)",
+    obsSpine: "#dbeafe",
+    coin: ["#fde047", "#ca8a04"],
+    dust: "rgba(30, 64, 175, 0.35)",
+    effect: "stars",
+  },
+  canyon: {
+    sky: ["#1e1b4b", "#7f1d1d"],
+    ground: "#991b1b",
+    hills: "#7f1d1d",
+    dunes: "rgba(69, 10, 10, 0.45)",
+    line: "#450a0a",
+    clouds: "rgba(254, 202, 202, 0.3)",
+    obs: ["#450a0a", "#991b1b", "#dc2626"],
+    obsStroke: "rgba(254, 202, 202, 0.4)",
+    obsSpine: "#fecaca",
+    coin: ["#fca5a5", "#dc2626"],
+    dust: "rgba(127, 29, 29, 0.45)",
+    effect: "stars",
   },
   frost: {
     sky: ["#dbeafe", "#f0f9ff"],
@@ -116,6 +216,96 @@ const BIOME_PALETTES = {
     dunes: "rgba(125, 211, 252, 0.35)",
     line: "#94a3b8",
     clouds: "rgba(255,255,255,0.92)",
+    obs: ["#475569", "#64748b", "#94a3b8"],
+    obsStroke: "rgba(224, 242, 254, 0.45)",
+    obsSpine: "#e0f2fe",
+    coin: ["#bae6fd", "#0284c7"],
+    dust: "rgba(148, 163, 184, 0.45)",
+    effect: "snow",
+  },
+  ice: {
+    sky: ["#bae6fd", "#e0f2fe"],
+    ground: "#cbd5e1",
+    hills: "#94a3b8",
+    dunes: "rgba(186, 230, 253, 0.45)",
+    line: "#64748b",
+    clouds: "rgba(255,255,255,0.95)",
+    obs: ["#334155", "#475569", "#64748b"],
+    obsStroke: "rgba(224, 242, 254, 0.5)",
+    obsSpine: "#f0f9ff",
+    coin: ["#a5f3fc", "#0891b2"],
+    dust: "rgba(100, 116, 139, 0.4)",
+    effect: "snow",
+  },
+  glacier: {
+    sky: ["#a5f3fc", "#ecfeff"],
+    ground: "#cffafe",
+    hills: "#a5f3fc",
+    dunes: "rgba(14, 165, 233, 0.25)",
+    line: "#0891b2",
+    clouds: "rgba(255,255,255,0.88)",
+    obs: ["#0e7490", "#0891b2", "#06b6d4"],
+    obsStroke: "rgba(207, 250, 254, 0.5)",
+    obsSpine: "#ecfeff",
+    coin: ["#67e8f9", "#0e7490"],
+    dust: "rgba(8, 145, 178, 0.35)",
+    effect: "snow",
+  },
+  blizzard: {
+    sky: ["#94a3b8", "#e2e8f0"],
+    ground: "#f1f5f9",
+    hills: "#cbd5e1",
+    dunes: "rgba(148, 163, 184, 0.35)",
+    line: "#64748b",
+    clouds: "rgba(255,255,255,0.98)",
+    obs: ["#64748b", "#94a3b8", "#cbd5e1"],
+    obsStroke: "rgba(241, 245, 249, 0.55)",
+    obsSpine: "#f8fafc",
+    coin: ["#e2e8f0", "#64748b"],
+    dust: "rgba(148, 163, 184, 0.5)",
+    effect: "snow",
+  },
+  titan: {
+    sky: ["#1e3a8a", "#312e81"],
+    ground: "#1e40af",
+    hills: "#1d4ed8",
+    dunes: "rgba(30, 58, 138, 0.45)",
+    line: "#1e3a8a",
+    clouds: "rgba(191, 219, 254, 0.45)",
+    obs: ["#172554", "#1e3a8a", "#2563eb"],
+    obsStroke: "rgba(191, 219, 254, 0.45)",
+    obsSpine: "#bfdbfe",
+    coin: ["#93c5fd", "#2563eb"],
+    dust: "rgba(37, 99, 235, 0.4)",
+    effect: "snow",
+  },
+  ember: {
+    sky: ["#78350f", "#451a03"],
+    ground: "#92400e",
+    hills: "#78350f",
+    dunes: "rgba(69, 26, 3, 0.45)",
+    line: "#451a03",
+    clouds: "rgba(254, 215, 170, 0.35)",
+    obs: ["#431407", "#9a3412", "#c2410c"],
+    obsStroke: "rgba(254, 215, 170, 0.4)",
+    obsSpine: "#fed7aa",
+    coin: ["#fdba74", "#ea580c"],
+    dust: "rgba(154, 52, 18, 0.45)",
+    effect: "embers",
+  },
+  magma: {
+    sky: ["#ea580c", "#fbbf24"],
+    ground: "#7c2d12",
+    hills: "#9a3412",
+    dunes: "rgba(124, 45, 18, 0.5)",
+    line: "#431407",
+    clouds: "rgba(254, 243, 199, 0.4)",
+    obs: ["#7f1d1d", "#b91c1c", "#ef4444"],
+    obsStroke: "rgba(254, 202, 202, 0.45)",
+    obsSpine: "#fecaca",
+    coin: ["#fcd34d", "#f97316"],
+    dust: "rgba(220, 38, 38, 0.45)",
+    effect: "embers",
   },
   ash: {
     sky: ["#44403c", "#7f1d1d"],
@@ -124,8 +314,60 @@ const BIOME_PALETTES = {
     dunes: "rgba(248, 113, 113, 0.28)",
     line: "#57534e",
     clouds: "rgba(120, 113, 108, 0.55)",
+    obs: ["#1c1917", "#44403c", "#57534e"],
+    obsStroke: "rgba(231, 229, 228, 0.35)",
+    obsSpine: "#e7e5e4",
+    coin: ["#fcd34d", "#b45309"],
+    dust: "rgba(68, 64, 60, 0.5)",
+    effect: "embers",
+  },
+  void: {
+    sky: ["#2e1065", "#0f172a"],
+    ground: "#3b0764",
+    hills: "#581c87",
+    dunes: "rgba(15, 23, 42, 0.55)",
+    line: "#4c1d95",
+    clouds: "rgba(192, 132, 252, 0.25)",
+    obs: ["#3b0764", "#6b21a8", "#9333ea"],
+    obsStroke: "rgba(233, 213, 255, 0.35)",
+    obsSpine: "#f3e8ff",
+    coin: ["#d8b4fe", "#9333ea"],
+    dust: "rgba(107, 33, 168, 0.4)",
+    effect: "stars",
+  },
+  inferno: {
+    sky: ["#dc2626", "#f97316"],
+    ground: "#450a0a",
+    hills: "#7f1d1d",
+    dunes: "rgba(69, 10, 10, 0.55)",
+    line: "#450a0a",
+    clouds: "rgba(254, 202, 202, 0.35)",
+    obs: ["#450a0a", "#b91c1c", "#ef4444"],
+    obsStroke: "rgba(254, 202, 202, 0.5)",
+    obsSpine: "#fee2e2",
+    coin: ["#fef08a", "#ef4444"],
+    dust: "rgba(185, 28, 28, 0.5)",
+    effect: "embers",
+  },
+  aurora: {
+    sky: ["#065f46", "#312e81"],
+    ground: "#047857",
+    hills: "#059669",
+    dunes: "rgba(52, 211, 153, 0.28)",
+    line: "#065f46",
+    clouds: "rgba(167, 243, 208, 0.45)",
+    obs: ["#064e3b", "#047857", "#10b981"],
+    obsStroke: "rgba(167, 243, 208, 0.4)",
+    obsSpine: "#d1fae5",
+    coin: ["#6ee7b7", "#059669"],
+    dust: "rgba(5, 150, 105, 0.4)",
+    effect: "aurora",
   },
 };
+
+function currentBiomePalette() {
+  return BIOME_PALETTES[currentStageConfig().biome] || BIOME_PALETTES.grass;
+}
 
 /**
  * Post-game preview — flip on for local testing, off before release.
@@ -1067,22 +1309,89 @@ function update() {
   updateHud();
 }
 
+function drawBiomeEffects(palette) {
+  const effect = palette.effect || "none";
+
+  if (effect === "stars" || effect === "aurora") {
+    ctx.fillStyle = effect === "aurora" ? "rgba(167, 243, 208, 0.85)" : "rgba(255,255,255,0.85)";
+    for (let i = 0; i < 28; i += 1) {
+      const sx = (i * 113 + frame * 0.04) % canvas.width;
+      const sy = 20 + (i * 37) % 130;
+      ctx.fillRect(sx, sy, i % 3 === 0 ? 2 : 1, i % 3 === 0 ? 2 : 1);
+    }
+  }
+
+  if (effect === "aurora") {
+    const wave = Math.sin(frame * 0.03) * 40;
+    const aurora = ctx.createLinearGradient(0, 40, canvas.width, 180);
+    aurora.addColorStop(0, "rgba(52, 211, 153, 0)");
+    aurora.addColorStop(0.35, "rgba(45, 212, 191, 0.22)");
+    aurora.addColorStop(0.65, "rgba(167, 139, 250, 0.2)");
+    aurora.addColorStop(1, "rgba(52, 211, 153, 0)");
+    ctx.fillStyle = aurora;
+    ctx.fillRect(wave, 30, canvas.width, 140);
+  }
+
+  if (effect === "sun") {
+    const sunX = canvas.width * 0.78;
+    const sunY = 88 + Math.sin(frame * 0.02) * 4;
+    const glow = ctx.createRadialGradient(sunX, sunY, 4, sunX, sunY, 56);
+    glow.addColorStop(0, "rgba(255, 255, 255, 0.95)");
+    glow.addColorStop(0.35, "rgba(253, 224, 71, 0.45)");
+    glow.addColorStop(1, "rgba(253, 224, 71, 0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, 56, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  if (effect === "rain") {
+    ctx.strokeStyle = "rgba(148, 163, 184, 0.45)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 48; i += 1) {
+      const x = (i * 41 + frame * 4) % canvas.width;
+      const y = (i * 29 + frame * 9) % (groundY - 24);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - 4, y + 12);
+      ctx.stroke();
+    }
+  }
+
+  if (effect === "snow") {
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    for (let i = 0; i < 36; i += 1) {
+      const x = (i * 53 + frame * 1.2) % canvas.width;
+      const y = (i * 37 + frame * 2.4) % (groundY - 10);
+      const r = i % 3 === 0 ? 2.2 : 1.4;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  if (effect === "embers") {
+    for (let i = 0; i < 22; i += 1) {
+      const x = (i * 67 + frame * 1.5) % canvas.width;
+      const y = groundY - ((i * 19 + frame * 2.2) % 120);
+      const alpha = 0.25 + (i % 5) * 0.08;
+      ctx.fillStyle = `rgba(251, 146, 60, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(x, y, 1.5 + (i % 3), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
 function drawBackground() {
-  const palette = BIOME_PALETTES[currentStageConfig().biome] || BIOME_PALETTES.grass;
+  const palette = currentBiomePalette();
   const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
   skyGradient.addColorStop(0, palette.sky[0]);
   skyGradient.addColorStop(1, palette.sky[1]);
   ctx.fillStyle = skyGradient;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  if (currentStageConfig().biome === "night" || currentStageConfig().biome === "storm") {
-    ctx.fillStyle = "rgba(255,255,255,0.85)";
-    for (let i = 0; i < 24; i += 1) {
-      const sx = (i * 113 + frame * 0.04) % canvas.width;
-      const sy = 24 + (i * 37) % 120;
-      ctx.fillRect(sx, sy, i % 3 === 0 ? 2 : 1, i % 3 === 0 ? 2 : 1);
-    }
-  }
+  drawBiomeEffects(palette);
 
   const cloudOffset = (frame * 0.35) % (canvas.width + 120);
   ctx.fillStyle = palette.clouds;
@@ -1175,9 +1484,11 @@ function drawPlayer() {
 }
 
 function drawObstacles() {
+  const palette = currentBiomePalette();
   obstacles.forEach((obs) => {
     const isTall = obs.type === "wall" || obs.type === "boss";
     const isBoss = obs.type === "boss";
+    const obsColors = palette.obs || ["#14532d", "#15803d", "#166534"];
 
     ctx.fillStyle = "rgba(15, 23, 42, 0.22)";
     ctx.beginPath();
@@ -1185,9 +1496,9 @@ function drawObstacles() {
     ctx.fill();
 
     const grad = ctx.createLinearGradient(obs.x, obs.y, obs.x + obs.w, obs.y);
-    grad.addColorStop(0, isBoss ? "#052e16" : "#14532d");
-    grad.addColorStop(0.55, isBoss ? "#166534" : "#15803d");
-    grad.addColorStop(1, isBoss ? "#052e16" : "#14532d");
+    grad.addColorStop(0, isBoss ? obsColors[0] : obsColors[0]);
+    grad.addColorStop(0.55, obsColors[1]);
+    grad.addColorStop(1, isBoss ? obsColors[0] : obsColors[2]);
     ctx.fillStyle = grad;
     ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
 
@@ -1196,7 +1507,7 @@ function drawObstacles() {
     ctx.fillRect(obs.x - 7, armY + (isTall ? 2 : 0), 7, armHeight);
     ctx.fillRect(obs.x + obs.w, armY + (isTall ? 5 : 0), 7, armHeight - 1);
 
-    ctx.strokeStyle = "rgba(187, 247, 208, 0.35)";
+    ctx.strokeStyle = palette.obsStroke || "rgba(187, 247, 208, 0.35)";
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(obs.x + 6, obs.y + 3);
@@ -1205,7 +1516,7 @@ function drawObstacles() {
     ctx.lineTo(obs.x + obs.w - 6, obs.y + obs.h - 2);
     ctx.stroke();
 
-    ctx.strokeStyle = "#dcfce7";
+    ctx.strokeStyle = palette.obsSpine || "#dcfce7";
     for (let s = 0; s < 5; s += 1) {
       const sy = obs.y + 7 + s * Math.max(8, obs.h / 6);
       ctx.beginPath();
@@ -1219,15 +1530,17 @@ function drawObstacles() {
 }
 
 function drawCoins() {
+  const palette = currentBiomePalette();
+  const coinColors = palette.coin || ["#fde68a", "#f59e0b"];
   coins.forEach((coin) => {
     const grad = ctx.createRadialGradient(coin.x - 2, coin.y - 2, 1, coin.x, coin.y, coin.r + 1);
-    grad.addColorStop(0, "#fde68a");
-    grad.addColorStop(1, "#f59e0b");
+    grad.addColorStop(0, coinColors[0]);
+    grad.addColorStop(1, coinColors[1]);
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.arc(coin.x, coin.y, coin.r, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = "#92400e";
+    ctx.strokeStyle = coinColors[1];
     ctx.lineWidth = 1.5;
     ctx.stroke();
   });
@@ -1243,13 +1556,16 @@ function drawPowerups() {
 }
 
 function drawDustParticles() {
+  const dustColor = currentBiomePalette().dust || "rgba(120, 97, 67, 0.45)";
   dustParticles.forEach((p) => {
     const alpha = Math.max(0, p.life / 30);
-    ctx.fillStyle = `rgba(120, 97, 67, ${alpha * 0.45})`;
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = dustColor;
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
     ctx.fill();
   });
+  ctx.globalAlpha = 1;
 }
 
 function drawOverlay() {
