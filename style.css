@@ -362,7 +362,9 @@ body.pseudo-fullscreen-active .game-shell.is-fullscreen {
 }
 
 html.force-landscape-active,
-body.force-landscape-active {
+body.force-landscape-active,
+html.pseudo-fullscreen-active.force-landscape-active,
+body.pseudo-fullscreen-active.force-landscape-active {
   overflow: visible;
 }
 
@@ -374,8 +376,8 @@ body.pseudo-fullscreen-active .game-shell.is-fullscreen.canvas-only-fs .canvas-w
 html:fullscreen .game-shell.is-fullscreen.canvas-only-fs .canvas-wrap.force-landscape,
 .game-shell.is-fullscreen.canvas-only-fs .canvas-wrap.force-landscape {
   position: fixed;
-  top: var(--safe-top);
-  left: var(--safe-left);
+  top: 50%;
+  left: 50%;
   right: auto;
   bottom: auto;
   width: calc(100dvh - var(--safe-top) - var(--safe-bottom));
@@ -384,8 +386,8 @@ html:fullscreen .game-shell.is-fullscreen.canvas-only-fs .canvas-wrap.force-land
   max-height: none;
   padding: 0;
   margin: 0;
-  transform: rotate(90deg);
-  transform-origin: top left;
+  transform: translate(-50%, -50%) rotate(90deg);
+  transform-origin: center center;
   z-index: 10000;
 }
 
@@ -438,19 +440,6 @@ html:fullscreen .game-shell.is-fullscreen.canvas-only-fs .canvas-wrap.force-land
   z-index: 4;
   color: #f8fafc;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
-}
-
-.game-shell.is-fullscreen.canvas-only-fs .canvas-wrap.force-landscape .score-panel {
-  align-self: center;
-  justify-self: start;
-  width: auto;
-  max-width: calc(100% - 12px);
-  padding: max(6px, var(--safe-top)) max(6px, var(--safe-right)) 6px max(6px, var(--safe-left));
-}
-
-.game-shell.is-fullscreen.canvas-only-fs .canvas-wrap.force-landscape #fullscreen-btn {
-  right: max(10px, var(--safe-bottom));
-  bottom: max(10px, var(--safe-left));
 }
 
 .game-shell.is-fullscreen.canvas-only-fs .score-panel .hud-title {

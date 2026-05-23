@@ -305,6 +305,10 @@ function updateFullscreenButton() {
 }
 
 function applyForceLandscape() {
+  if (isLandscape()) {
+    clearForceLandscape();
+    return;
+  }
   canvasWrap?.classList.add("force-landscape");
   document.documentElement.classList.add("force-landscape-active");
   document.body.classList.add("force-landscape-active");
@@ -489,12 +493,8 @@ function layoutCanvasStage() {
     }
     return;
   }
-  const availW = forceLandscape
-    ? canvasWrap.clientWidth || window.innerHeight
-    : canvasWrap.clientWidth;
-  const availH = forceLandscape
-    ? canvasWrap.clientHeight || window.innerWidth
-    : canvasWrap.clientHeight;
+  const availW = canvasWrap.clientWidth;
+  const availH = canvasWrap.clientHeight;
   if (!availW || !availH) {
     return;
   }
