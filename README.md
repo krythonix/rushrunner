@@ -4,7 +4,28 @@ A richer endless runner prototype built with plain HTML/CSS/JavaScript.
 
 ## Run locally
 
-Open `index.html` in a browser.
+Open `index.html` in a browser, or serve the folder over HTTP (required for PWA install and service worker):
+
+```bash
+python3 -m http.server 8080
+```
+
+Then open `http://localhost:8080`.
+
+## Install on your phone (PWA)
+
+The game is a Progressive Web App. Install it from your **deployed HTTPS site** (GitHub Pages or similar):
+
+**iPhone (Safari)**
+1. Open the game URL in Safari
+2. Tap Share → **Add to Home Screen**
+3. Tap **Add**
+
+**Android (Chrome)**
+1. Open the game URL in Chrome
+2. Tap the menu → **Install app** or **Add to Home screen**
+
+The installed app runs fullscreen, caches assets for faster loads, and works offline after the first visit.
 
 ## Deploy / cache busting
 
@@ -33,6 +54,7 @@ This sets `?v=` to the current git commit (or a timestamp if git is unavailable)
   - coin magnet upgrades
 - Shield power-up spawns
 - Persistent profile save in localStorage
+- Installable PWA with offline cache (Add to Home Screen / Install app)
 
 ## Next steps for mobile launch
 

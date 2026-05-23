@@ -6,17 +6,23 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Runner Rush" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="description" content="Arcade endless runner with stages, upgrades, and boss fights." />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <title>Runner Rush</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Russo+One&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./style.css?v=d7bda2a" />
+    <link rel="stylesheet" href="./style.css?v=ecaed7e" />
   </head>
   <body>
     <main class="game-shell">
@@ -68,7 +74,8 @@
       <p class="instructions">Controls: Space=Jump, ArrowDown=Slide, tap upper canvas=jump, lower canvas=slide, R=Restart.</p>
     </main>
 
-    <audio id="bg-music" src="./assets/music/bg-loop.wav?v=d7bda2a" loop preload="auto"></audio>
-    <script src="./game.js?v=d7bda2a"></script>
+    <audio id="bg-music" src="./assets/music/bg-loop.wav?v=ecaed7e" loop preload="auto"></audio>
+    <script src="./pwa.js?v=ecaed7e"></script>
+    <script src="./game.js?v=ecaed7e"></script>
   </body>
 </html>
