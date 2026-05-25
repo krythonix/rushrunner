@@ -670,6 +670,8 @@ let overlayShownAt = 0;
 let pointerOverlayEpoch = null;
 let musicEnabled = localStorage.getItem(musicPrefKey) !== "false";
 let musicUnlocked = false;
+let musicSessionActive = false;
+let webAudioEnhancePending = false;
 let musicContext = null;
 let musicBuffer = null;
 let musicBufferLoading = null;
@@ -679,6 +681,16 @@ let musicWarmthFilter = null;
 let musicGainNode = null;
 let musicWebAudioActive = false;
 let activeMusicWorldId = null;
+
+function shouldUseHtmlMusicOnly() {
+  const ua = navigator.userAgent;
+  const iosDevice = /iPhone|iPad|iPod/i.test(ua);
+  const touchMac = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  const standalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true;
+  return iosDevice || touchMac || standalone;
+}
 
 function musicWorldForStage() {
   if (endlessMode) {
@@ -782,14 +794,67 @@ function pauseMusic() {
   if (musicGainNode) {
     musicGainNode.gain.value = 0;
   }
-  stopHtmlAudioPlayback();
+  if (bgMusic && !bgMusic.paused) {
+    stopHtmlAudioPlayback();
+  }
 }
 
 function isMusicAudiblyPlaying() {
+  if (!musicEnabled) {
+    return false;
+  }
+  if (shouldUseHtmlMusicOnly()) {
+    return musicSessionActive && bgMusic && !bgMusic.paused && !bgMusic.muted;
+  }
   if (musicWebAudioActive && musicBufferSource) {
     return true;
   }
-  return !!(bgMusic && musicEnabled && !bgMusic.paused && !bgMusic.muted);
+  return !!(bgMusic && !bgMusic.paused && !bgMusic.muted);
+}
+
+function resumeHtmlMusicPlayback() {
+  if (!bgMusic || !musicEnabled) {
+    return;
+  }
+  stopWebAudioPlayback();
+  bgMusic.loop = true;
+  bgMusic.volume = 0.35;
+  bgMusic.muted = false;
+  syncWorldAudioProfile(true);
+  if (musicSessionActive && !bgMusic.paused) {
+    return;
+  }
+  musicSessionActive = true;
+  if (!bgMusic.paused) {
+    return;
+  }
+  const playAttempt = bgMusic.play();
+  if (playAttempt !== undefined) {
+    playAttempt.catch(() => {});
+  }
+}
+
+function resumeMusicAfterGesture() {
+  if (!musicEnabled || state !== "playing" || document.hidden) {
+    return;
+  }
+  if (!musicUnlocked) {
+    musicUnlocked = true;
+    if (!shouldUseHtmlMusicOnly()) {
+      void loadMusicBuffer();
+    }
+  }
+  if (shouldUseHtmlMusicOnly()) {
+    resumeHtmlMusicPlayback();
+    return;
+  }
+  ensureMusicContext();
+  resumeMusicContextSync();
+  if (!isMusicAudiblyPlaying()) {
+    startMusicPlayback();
+  } else {
+    syncWorldAudioProfile(true);
+  }
 }
 
 function setAudioParam(param, value, smooth = true) {
@@ -877,65 +942,71 @@ function startHtmlAudioPlayback() {
 }
 
 async function enhanceWithWebAudioIfReady() {
-  ensureMusicContext();
-  if (!musicContext) {
+  if (shouldUseHtmlMusicOnly() || webAudioEnhancePending || musicWebAudioActive) {
     return;
   }
-  if (musicContext.state === "suspended") {
-    try {
-      await musicContext.resume();
-    } catch {
+  webAudioEnhancePending = true;
+  try {
+    ensureMusicContext();
+    if (!musicContext) {
       return;
     }
+    if (musicContext.state === "suspended") {
+      try {
+        await musicContext.resume();
+      } catch {
+        return;
+      }
+    }
+    const buffer = await loadMusicBuffer();
+    if (!musicContext || musicContext.state !== "running" || !buffer) {
+      return;
+    }
+    if (!musicEnabled || state !== "playing" || document.hidden) {
+      return;
+    }
+    if (musicWebAudioActive || shouldUseHtmlMusicOnly()) {
+      return;
+    }
+    startWebAudioPlayback();
+  } finally {
+    webAudioEnhancePending = false;
   }
-  const buffer = await loadMusicBuffer();
-  if (!musicContext || musicContext.state !== "running" || !buffer) {
-    return;
-  }
-  if (!musicEnabled || state !== "playing" || document.hidden) {
-    return;
-  }
-  if (musicWebAudioActive) {
-    syncWorldAudioProfile(true);
-    return;
-  }
-  startWebAudioPlayback();
 }
 
 function startMusicPlayback() {
   if (!musicEnabled || state !== "playing" || document.hidden) {
     return;
   }
-  if (isMusicAudiblyPlaying()) {
-    syncWorldAudioProfile(true);
+  syncWorldAudioProfile(true);
+  if (shouldUseHtmlMusicOnly()) {
+    resumeHtmlMusicPlayback();
     return;
   }
-  syncWorldAudioProfile(true);
+  if (isMusicAudiblyPlaying()) {
+    return;
+  }
   startHtmlAudioPlayback();
   void enhanceWithWebAudioIfReady();
 }
 
 function unlockMusicFromGesture() {
-  if (!musicEnabled || musicUnlocked) {
+  if (!musicEnabled) {
     return;
   }
-  musicUnlocked = true;
-  ensureMusicContext();
-  resumeMusicContextSync();
-  void loadMusicBuffer();
+  if (!musicUnlocked) {
+    musicUnlocked = true;
+    if (!shouldUseHtmlMusicOnly()) {
+      ensureMusicContext();
+      resumeMusicContextSync();
+      void loadMusicBuffer();
+    }
+  }
 }
 
 function registerMusicGestureUnlock() {
   const onGesture = () => {
-    ensureMusicContext();
-    resumeMusicContextSync();
-    if (!musicUnlocked) {
-      musicUnlocked = true;
-      void loadMusicBuffer();
-    }
-    if (state === "playing" && !document.hidden && !isMusicAudiblyPlaying()) {
-      startMusicPlayback();
-    }
+    resumeMusicAfterGesture();
   };
   document.addEventListener("pointerdown", onGesture, { passive: true });
   document.addEventListener("keydown", onGesture);
@@ -1487,6 +1558,7 @@ function toggleMusic() {
     unlockMusicFromGesture();
     startMusicPlayback();
   } else {
+    musicSessionActive = false;
     pauseMusic();
   }
 }
@@ -1684,7 +1756,6 @@ function dismissWorldIntro() {
   setState("playing");
   syncWorldAudioProfile(true);
   unlockMusicFromGesture();
-  startMusicPlayback();
   updateHud();
 }
 
@@ -2021,7 +2092,6 @@ function advanceToNextStage() {
   syncWorldAudioProfile(true);
   setState("playing");
   unlockMusicFromGesture();
-  startMusicPlayback();
   updateHud();
 }
 
@@ -4317,6 +4387,11 @@ document.addEventListener("visibilitychange", () => {
 
 applyMusicSettings();
 updateMusicButton();
+if (bgMusic && shouldUseHtmlMusicOnly()) {
+  bgMusic.setAttribute("playsinline", "");
+  bgMusic.playsInline = true;
+  bgMusic.preload = "auto";
+}
 updateFullscreenButton();
 updateExitAppButton();
 registerMusicGestureUnlock();
