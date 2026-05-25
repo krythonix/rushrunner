@@ -1124,6 +1124,63 @@ function closeGameMenu() {
   menuToggleBtn?.setAttribute("aria-expanded", "false");
 }
 
+function getMenuScrollEl() {
+  if (document.documentElement.classList.contains("force-landscape-active")) {
+    return gameMenu?.querySelector(".game-menu-scroll") ?? null;
+  }
+  return gameMenu;
+}
+
+function setupAndroidMenuScroll() {
+  if (!isAndroid() || !gameMenu) {
+    return;
+  }
+
+  let tracking = false;
+  let startY = 0;
+  let startScrollTop = 0;
+
+  gameMenu.addEventListener(
+    "touchstart",
+    (event) => {
+      if (!gameMenu.classList.contains("open")) {
+        tracking = false;
+        return;
+      }
+      const target = getMenuScrollEl();
+      if (!target || event.touches.length !== 1 || !target.contains(event.target)) {
+        tracking = false;
+        return;
+      }
+      tracking = true;
+      startY = event.touches[0].clientY;
+      startScrollTop = target.scrollTop;
+    },
+    { passive: true },
+  );
+
+  gameMenu.addEventListener(
+    "touchmove",
+    (event) => {
+      if (!tracking || event.touches.length !== 1) {
+        return;
+      }
+      const target = getMenuScrollEl();
+      if (!target) {
+        return;
+      }
+      target.scrollTop = startScrollTop + (startY - event.touches[0].clientY);
+    },
+    { passive: true },
+  );
+
+  const stopTracking = () => {
+    tracking = false;
+  };
+  gameMenu.addEventListener("touchend", stopTracking, { passive: true });
+  gameMenu.addEventListener("touchcancel", stopTracking, { passive: true });
+}
+
 function toggleGameMenu() {
   if (gameMenu?.classList.contains("open")) {
     closeGameMenu();
@@ -1494,24 +1551,46 @@ function layoutCanvasStage() {
   const forceLandscape = canvasWrap.classList.contains("force-landscape");
 
   if (!isFs && !forceLandscape) {
-    let width = Math.floor(window.innerWidth * 0.6);
-    width = Math.min(Math.max(width, 280), 960);
-    let height = Math.floor(width / GAME_ASPECT);
-
     const hudReserve = (scorePanel?.offsetHeight || 0) + 48;
-    const maxHeight = Math.floor(window.innerHeight - hudReserve);
-    if (height > maxHeight && maxHeight >= 90) {
-      height = maxHeight;
-      width = Math.floor(height * GAME_ASPECT);
+    let width;
+    let height;
+
+    if (isSmallScreen()) {
+      const maxW = Math.max(160, window.innerWidth);
+      const maxH = Math.max(90, window.innerHeight - hudReserve);
+      if (isLandscape()) {
+        height = maxH;
+        width = height * GAME_ASPECT;
+        if (width > maxW) {
+          width = maxW;
+          height = width / GAME_ASPECT;
+        }
+      } else {
+        width = maxW;
+        height = width / GAME_ASPECT;
+        if (height > maxH) {
+          height = maxH;
+          width = height * GAME_ASPECT;
+        }
+      }
+    } else {
+      width = Math.floor(window.innerWidth * 0.6);
+      width = Math.min(Math.max(width, 280), 960);
+      height = Math.floor(width / GAME_ASPECT);
+      const maxHeight = Math.floor(window.innerHeight - hudReserve);
+      if (height > maxHeight && maxHeight >= 90) {
+        height = maxHeight;
+        width = Math.floor(height * GAME_ASPECT);
+      }
     }
 
-    width = Math.max(160, width);
-    height = Math.max(90, height);
+    width = Math.max(160, Math.floor(width));
+    height = Math.max(90, Math.floor(height));
 
     canvasStage.style.width = `${width}px`;
     canvasStage.style.height = `${height}px`;
     if (scorePanel) {
-      scorePanel.style.width = usePortraitCanvasHud() ? "" : `${width}px`;
+      scorePanel.style.width = isLandscape() || isSmallScreen() ? `${width}px` : "";
     }
     return;
   }
@@ -1597,11 +1676,12 @@ async function toggleFullscreen() {
 async function handleOrientationChange() {
   if (isLandscape()) {
     clearForceLandscape();
+  } else if (isFullscreenActive() && isPortrait() && isSmallScreen()) {
+    await ensureLandscape();
   }
   await tryAutoMobileFullscreen();
-  if (!isFullscreenActive() || !isLandscape()) {
-    layoutCanvasStage();
-  }
+  layoutCanvasStage();
+  requestAnimationFrame(layoutCanvasStage);
 }
 
 layoutCanvasStage();
@@ -4461,6 +4541,7 @@ menuToggleBtn?.addEventListener("pointerdown", (event) => {
 });
 menuCloseBtn?.addEventListener("click", closeGameMenu);
 menuBackdrop?.addEventListener("click", closeGameMenu);
+setupAndroidMenuScroll();
 if (fullscreenBtn) {
   fullscreenBtn.addEventListener("click", (event) => {
     event.preventDefault();

@@ -258,8 +258,8 @@ html.force-landscape-active .menu-backdrop:not([hidden]) {
   transform-origin: center center;
 }
 
-html.menu-open.pseudo-fullscreen-active,
-body.menu-open.pseudo-fullscreen-active {
+html.menu-open,
+body.menu-open {
   touch-action: auto;
 }
 
@@ -267,7 +267,7 @@ html.menu-open .game-menu,
 html.menu-open .game-menu-orient,
 html.menu-open .game-menu-scroll,
 html.menu-open .menu-backdrop:not([hidden]) {
-  touch-action: pan-y;
+  touch-action: auto;
 }
 
 .game-menu-orient,
@@ -331,7 +331,7 @@ html.force-landscape-active .game-menu.open {
 html.force-landscape-active .game-menu-orient {
   display: flex;
   flex-direction: column;
-  flex: 0 1 auto;
+  flex: 0 1 85%;
   width: min(420px, 92%);
   min-height: 0;
   max-height: 85%;
@@ -353,10 +353,10 @@ html.force-landscape-active .game-menu-scroll {
   flex: 1 1 auto;
   min-height: 0;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: scroll;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
+  touch-action: auto;
 }
 
 html.force-landscape-active .game-menu-nav,
@@ -706,6 +706,11 @@ body.pseudo-fullscreen-active {
   padding: 0;
   display: block;
   background: #0f172a;
+}
+
+html.menu-open.pseudo-fullscreen-active,
+body.menu-open.pseudo-fullscreen-active {
+  touch-action: auto;
 }
 
 html.pseudo-fullscreen-active {
@@ -1145,6 +1150,27 @@ html:-webkit-full-screen .game-shell.is-fullscreen.canvas-only-fs {
   }
 
 @media (orientation: landscape) and (max-height: 900px) {
+  body:not(.pseudo-fullscreen-active) {
+    padding: 0;
+    display: block;
+  }
+
+  .game-shell:not(.is-fullscreen) {
+    width: 100%;
+    max-width: none;
+    min-height: 100dvh;
+    border-radius: 0;
+    padding:
+      max(6px, var(--safe-top))
+      max(6px, var(--safe-right))
+      max(6px, var(--safe-bottom))
+      max(6px, var(--safe-left));
+  }
+
+  .game-shell:not(.is-fullscreen) .canvas-wrap {
+    width: 100%;
+  }
+
   .game-shell.is-fullscreen {
     width: 100%;
     min-height: auto;
