@@ -495,7 +495,7 @@ function unlockOrientation() {
 async function tryNativeFullscreen() {
   const targets = isSmallScreen()
     ? [document.documentElement, document.body, gameShell]
-    : [gameShell, document.documentElement];
+    : [document.documentElement, document.body, gameShell];
   for (const target of targets) {
     if (!target) {
       continue;
