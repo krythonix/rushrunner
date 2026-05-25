@@ -188,19 +188,18 @@ body {
 }
 
 html.force-landscape-active .menu-backdrop:not([hidden]) {
-  inset: auto;
-  top: 50%;
-  left: 50%;
-  width: calc(100dvh - var(--safe-top) - var(--safe-bottom));
-  height: calc(100dvw - var(--safe-left) - var(--safe-right));
-  transform: translate(-50%, -50%) rotate(90deg);
-  transform-origin: center center;
+  inset: 0;
+  top: 0;
+  left: 0;
+  width: auto;
+  height: auto;
+  transform: none;
 }
 
 body.pseudo-fullscreen-active .game-menu,
 body.pseudo-fullscreen-active .game-menu-scroll,
 body.pseudo-fullscreen-active .menu-backdrop:not([hidden]) {
-  touch-action: pan-x pan-y;
+  touch-action: pan-y;
 }
 
 .game-menu-orient,
@@ -236,12 +235,12 @@ body.pseudo-fullscreen-active .menu-backdrop:not([hidden]) {
 }
 
 html.force-landscape-active .game-menu {
-  top: 50%;
-  left: 50%;
-  right: auto;
-  bottom: auto;
-  width: calc(100dvh - var(--safe-top) - var(--safe-bottom));
-  height: calc(100dvw - var(--safe-left) - var(--safe-right));
+  top: max(0px, var(--safe-top));
+  right: max(0px, var(--safe-right));
+  left: auto;
+  bottom: max(0px, var(--safe-bottom));
+  width: min(320px, calc(100vw - 24px));
+  height: calc(100dvh - max(0px, var(--safe-top)) - max(0px, var(--safe-bottom)));
   max-height: none;
   padding: 0;
   overflow: hidden;
@@ -249,12 +248,12 @@ html.force-landscape-active .game-menu {
   border: 0;
   box-shadow: none;
   border-radius: 0;
-  transform: translate(-50%, -50%) rotate(90deg) translateY(100%);
-  transform-origin: center center;
+  transform: translateX(calc(100% + 20px));
+  transform-origin: center right;
 }
 
 html.force-landscape-active .game-menu.open {
-  transform: translate(-50%, -50%) rotate(90deg) translateY(0);
+  transform: translateX(0);
 }
 
 html.force-landscape-active .game-menu-orient {
@@ -264,41 +263,38 @@ html.force-landscape-active .game-menu-orient {
   height: 100%;
   background: #0f172a;
   border: 1px solid rgba(148, 163, 184, 0.25);
-  border-radius: 20px 20px 0 0;
-  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.45);
+  border-radius: 16px 0 0 16px;
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.45);
   padding:
     0
-    max(16px, var(--safe-right))
-    max(16px, var(--safe-bottom))
-    max(16px, var(--safe-left));
+    max(14px, var(--safe-right))
+    max(14px, var(--safe-bottom))
+    max(14px, var(--safe-left));
   overflow: hidden;
 }
 
 html.force-landscape-active .game-menu-scroll {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  align-items: stretch;
+  display: block;
   flex: 1;
   min-height: 0;
-  min-width: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-x;
+  touch-action: pan-y;
 }
 
 html.force-landscape-active .game-menu-nav,
 html.force-landscape-active .game-menu-shop {
-  display: contents;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 html.force-landscape-active .game-menu-section-title,
 html.force-landscape-active .menu-item {
-  flex: 0 0 auto;
-  align-self: stretch;
-  width: calc(100dvw - var(--safe-left) - var(--safe-right) - 32px);
+  width: 100%;
+  flex: none;
   box-sizing: border-box;
 }
 
