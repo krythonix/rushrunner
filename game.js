@@ -56,6 +56,12 @@ const WORLD2_START = STAGES_PER_WORLD + 1;
 const WORLD3_START = STAGES_PER_WORLD * 2 + 1;
 const WORLD4_START = STAGES_PER_WORLD * 3 + 1;
 const WORLD5_START = STAGES_PER_WORLD * 4 + 1;
+const WORLD_INTRO_BY_ENTRY_STAGE = {
+  [WORLD2_START]: 2,
+  [WORLD3_START]: 3,
+  [WORLD4_START]: 4,
+  [WORLD5_START]: 5,
+};
 
 // Same bg-loop track; per-world speed / warmth (lowshelf dB) / depth (lowpass Hz).
 const WORLD_AUDIO_PROFILES = [
@@ -1589,19 +1595,20 @@ function getWorldIntroForStage(stageIndex = save.currentStage) {
   if (endlessMode) {
     return null;
   }
-  if (stageIndex === WORLD2_START) {
-    return 2;
+  return WORLD_INTRO_BY_ENTRY_STAGE[stageIndex] ?? null;
+}
+
+function getWorldIntroForTransition(fromStageIndex, toStageIndex) {
+  if (endlessMode || toStageIndex <= fromStageIndex) {
+    return null;
   }
-  if (stageIndex === WORLD3_START) {
-    return 3;
-  }
-  if (stageIndex === WORLD4_START) {
-    return 4;
-  }
-  if (stageIndex === WORLD5_START) {
-    return 5;
-  }
-  return null;
+  return WORLD_INTRO_BY_ENTRY_STAGE[toStageIndex] ?? null;
+}
+
+function pauseForWorldIntro(worldId) {
+  activeWorldIntro = worldId;
+  syncWorldAudioProfile(true);
+  setState("worldintro");
 }
 
 function getPendingWorldIntro() {
@@ -1648,8 +1655,10 @@ function dismissWorldIntro() {
     return;
   }
   setState("playing");
+  syncWorldAudioProfile(true);
   unlockMusicFromGesture();
   startMusicPlayback();
+  updateHud();
 }
 
 function beginWorldIntroIfNeeded() {
@@ -1659,7 +1668,7 @@ function beginWorldIntroIfNeeded() {
     return;
   }
   activeWorldIntro = pending;
-  setState("worldintro");
+  pauseForWorldIntro(pending);
 }
 
 function resetPlayerPosition() {
@@ -2489,9 +2498,9 @@ function registerGameOver() {
 
 function registerStageClear() {
   collectRunRewards(true);
-  player.shieldTimer = Math.max(player.shieldTimer, STAGE_CLEAR_SHIELD_FRAMES);
   if (save.currentStage < STAGES.length) {
-    const prevStage = STAGES[save.currentStage - 1];
+    const fromStageIndex = save.currentStage;
+    const prevStage = STAGES[fromStageIndex - 1];
     if (save.unlockedStage === save.currentStage) {
       save.unlockedStage += 1;
     }
@@ -2500,10 +2509,10 @@ function registerStageClear() {
     persistSave();
     applyStageWorldTransition(prevStage);
     updateHud();
-    const worldIntro = getWorldIntroForStage();
+    const worldIntro = getWorldIntroForTransition(fromStageIndex, save.currentStage);
+    player.shieldTimer = Math.max(player.shieldTimer, STAGE_CLEAR_SHIELD_FRAMES);
     if (worldIntro !== null) {
-      activeWorldIntro = worldIntro;
-      setState("worldintro");
+      pauseForWorldIntro(worldIntro);
     } else {
       continueAfterStageClear();
     }
@@ -2514,6 +2523,7 @@ function registerStageClear() {
   endlessMode = true;
   stageStartScore = score;
   persistSave();
+  player.shieldTimer = Math.max(player.shieldTimer, STAGE_CLEAR_SHIELD_FRAMES);
   advanceToNextStage();
 }
 
