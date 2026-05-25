@@ -51,13 +51,17 @@ const WATER_DRAG = 0.968;
 const gravity = 0.84;
 const baseJumpForce = -14.8;
 
+const STAGES_PER_WORLD = 8;
+const WORLD2_START = STAGES_PER_WORLD + 1;
+const WORLD3_START = STAGES_PER_WORLD * 2 + 1;
+const WORLD4_START = STAGES_PER_WORLD * 3 + 1;
+const WORLD5_START = STAGES_PER_WORLD * 4 + 1;
+
 const STAGES = [
   { name: "Sunny Trail", targetScore: 90, startSpeed: 3.0, accel: 0.00065, spawn: 80, boss: false, biome: "grass" },
-  { name: "Dry Plains", targetScore: 120, startSpeed: 3.3, accel: 0.00075, spawn: 76, boss: false, biome: "grass" },
   { name: "Rock Dust", targetScore: 150, startSpeed: 3.6, accel: 0.00085, spawn: 72, boss: false, biome: "desert" },
   { name: "Windy Ridge", targetScore: 185, startSpeed: 3.9, accel: 0.00095, spawn: 68, boss: false, biome: "dusk" },
   { name: "Boss: Thorn Lord", targetScore: 230, startSpeed: 4.0, accel: 0.00105, spawn: 64, boss: true, biome: "grass" },
-  { name: "Sunset Dunes", targetScore: 275, startSpeed: 4.3, accel: 0.00115, spawn: 60, boss: false, biome: "desert" },
   { name: "Wild Barrens", targetScore: 320, startSpeed: 4.6, accel: 0.0012, spawn: 56, boss: false, biome: "storm" },
   { name: "Storm Flats", targetScore: 365, startSpeed: 4.9, accel: 0.00125, spawn: 53, boss: false, biome: "storm" },
   { name: "Night Canyons", targetScore: 420, startSpeed: 5.1, accel: 0.0013, spawn: 50, boss: false, biome: "night" },
@@ -65,42 +69,34 @@ const STAGES = [
   { name: "Frozen Tundra", targetScore: 540, startSpeed: 5.6, accel: 0.00145, spawn: 44, boss: false, biome: "frost", slippery: true },
   { name: "Ice Ravine", targetScore: 600, startSpeed: 5.8, accel: 0.0015, spawn: 42, boss: false, biome: "frost", slippery: true },
   { name: "Glacier Pass", targetScore: 660, startSpeed: 6.0, accel: 0.00155, spawn: 40, boss: false, biome: "frost", slippery: true },
-  { name: "Blizzard Peak", targetScore: 720, startSpeed: 6.2, accel: 0.0016, spawn: 38, boss: false, biome: "frost", slippery: true },
   { name: "Boss: Frost Titan", targetScore: 790, startSpeed: 6.3, accel: 0.00165, spawn: 36, boss: true, biome: "frost", slippery: true },
   { name: "Ember Wastes", targetScore: 860, startSpeed: 6.5, accel: 0.0017, spawn: 34, boss: false, biome: "ash" },
   { name: "Magma Fields", targetScore: 930, startSpeed: 6.7, accel: 0.00175, spawn: 32, boss: false, biome: "ash" },
   { name: "Ash Storm", targetScore: 1000, startSpeed: 6.9, accel: 0.0018, spawn: 30, boss: false, biome: "ash" },
-  { name: "Scorched Void", targetScore: 1080, startSpeed: 7.1, accel: 0.00185, spawn: 28, boss: false, biome: "ash" },
   { name: "Final Boss: Inferno Lord", targetScore: 1180, startSpeed: 7.3, accel: 0.00195, spawn: 26, boss: true, biome: "ash" },
   { name: "Cloud Peaks", targetScore: 1250, startSpeed: 7.4, accel: 0.002, spawn: 25, boss: false, biome: "sky", flying: true },
   { name: "Gust Valley", targetScore: 1320, startSpeed: 7.5, accel: 0.00205, spawn: 24, boss: false, biome: "sky", flying: true },
   { name: "Rain Squall", targetScore: 1400, startSpeed: 7.6, accel: 0.0021, spawn: 23, boss: false, biome: "storm", flying: true },
-  { name: "Lightning Fields", targetScore: 1480, startSpeed: 7.7, accel: 0.00215, spawn: 22, boss: false, biome: "storm", flying: true },
   { name: "Boss: Storm Hawk", targetScore: 1570, startSpeed: 7.8, accel: 0.0022, spawn: 21, boss: true, biome: "storm", flying: true },
   { name: "Aurora Drift", targetScore: 1660, startSpeed: 7.9, accel: 0.00225, spawn: 20, boss: false, biome: "aurora", flying: true },
   { name: "Moonlit Skyway", targetScore: 1760, startSpeed: 8.0, accel: 0.0023, spawn: 19, boss: false, biome: "aurora", flying: true },
-  { name: "Crystal Winds", targetScore: 1860, startSpeed: 8.1, accel: 0.00235, spawn: 18, boss: false, biome: "sky", flying: true },
   { name: "Void Horizon", targetScore: 1960, startSpeed: 8.2, accel: 0.0024, spawn: 17, boss: false, biome: "void", flying: true },
   { name: "Final Boss: Sky Serpent", targetScore: 2100, startSpeed: 8.3, accel: 0.0025, spawn: 16, boss: true, biome: "void", flying: true },
   { name: "Shallow Shores", targetScore: 2200, startSpeed: 8.4, accel: 0.00255, spawn: 15, boss: false, biome: "ocean", swimming: true },
   { name: "Coral Gardens", targetScore: 2320, startSpeed: 8.5, accel: 0.0026, spawn: 14, boss: false, biome: "reef", swimming: true },
-  { name: "Tidal Run", targetScore: 2440, startSpeed: 8.55, accel: 0.00265, spawn: 14, boss: false, biome: "ocean", swimming: true },
   { name: "Kelp Forest", targetScore: 2560, startSpeed: 8.6, accel: 0.0027, spawn: 13, boss: false, biome: "reef", swimming: true },
   { name: "Boss: Kraken's Gate", targetScore: 2680, startSpeed: 8.65, accel: 0.00275, spawn: 13, boss: true, biome: "deep", swimming: true },
   { name: "Sunken Ruins", targetScore: 2800, startSpeed: 8.7, accel: 0.0028, spawn: 12, boss: false, biome: "deep", swimming: true },
   { name: "Glow Caverns", targetScore: 2920, startSpeed: 8.75, accel: 0.00285, spawn: 12, boss: false, biome: "abyss", swimming: true },
-  { name: "Riptide Pass", targetScore: 3040, startSpeed: 8.8, accel: 0.0029, spawn: 11, boss: false, biome: "ocean", swimming: true },
   { name: "Mariana Sprint", targetScore: 3160, startSpeed: 8.85, accel: 0.00295, spawn: 11, boss: false, biome: "abyss", swimming: true },
   { name: "Final Boss: Leviathan", targetScore: 3300, startSpeed: 8.9, accel: 0.00305, spawn: 10, boss: true, biome: "abyss", swimming: true },
   { name: "Cinder Trail", targetScore: 3420, startSpeed: 9.0, accel: 0.0031, spawn: 10, boss: false, biome: "lava", volcanic: true },
-  { name: "Molten Pass", targetScore: 3540, startSpeed: 9.05, accel: 0.00315, spawn: 9, boss: false, biome: "lava", volcanic: true },
   { name: "Geyser Fields", targetScore: 3660, startSpeed: 9.1, accel: 0.0032, spawn: 9, boss: false, biome: "volcanic", volcanic: true },
   { name: "Ashfall Ridge", targetScore: 3780, startSpeed: 9.15, accel: 0.00325, spawn: 8, boss: false, biome: "ember", volcanic: true },
   { name: "Boss: Magma Wyrm", targetScore: 3920, startSpeed: 9.2, accel: 0.0033, spawn: 8, boss: true, biome: "inferno", volcanic: true },
   { name: "Caldera Run", targetScore: 4060, startSpeed: 9.25, accel: 0.00335, spawn: 8, boss: false, biome: "volcanic", volcanic: true },
   { name: "Hellforge", targetScore: 4200, startSpeed: 9.3, accel: 0.0034, spawn: 7, boss: false, biome: "inferno", volcanic: true },
   { name: "Pyroclast Peaks", targetScore: 4340, startSpeed: 9.35, accel: 0.00345, spawn: 7, boss: false, biome: "lava", volcanic: true },
-  { name: "Burning Depths", targetScore: 4480, startSpeed: 9.4, accel: 0.0035, spawn: 6, boss: false, biome: "inferno", volcanic: true },
   { name: "Final Boss: Phoenix King", targetScore: 4640, startSpeed: 9.45, accel: 0.0036, spawn: 6, boss: true, biome: "inferno", volcanic: true },
 ];
 
@@ -265,11 +261,11 @@ const BIOME_PALETTES = {
 
 /**
  * Post-game preview — flip on for local testing, off before release.
- * URL: ?postgame=N (stage 1–50), ?postgame=final, ?postgame=world2, ?postgame=world4, ?postgame=world5, ?postgame=endless
+ * URL: ?postgame=N (stage 1–40), ?postgame=final, ?postgame=world2, ?postgame=world4, ?postgame=world5, ?postgame=endless
  */
 const GAME_CONFIG = {
   unlockPostGame: false,
-  startStage: 11,
+  startStage: 9,
   unlockEndless: true,
   startInEndlessMode: false,
   demoBankCoins: 0,
@@ -295,29 +291,47 @@ save.unlockedStage = Math.max(1, Math.min(STAGES.length, save.unlockedStage));
 save.currentStage = Math.max(1, Math.min(save.unlockedStage, save.currentStage));
 save.endlessUnlocked = !!save.endlessUnlocked;
 save.endlessBest = Math.max(0, save.endlessBest || 0);
-if (save.unlockedStage === 10 && STAGES.length > 10) {
-  save.unlockedStage = 11;
-}
-if (STAGES.length > 20 && save.endlessUnlocked && save.unlockedStage >= 20) {
-  save.unlockedStage = Math.max(save.unlockedStage, 21);
-  if (save.currentStage === 20) {
-    save.currentStage = 21;
-    localStorage.setItem(saveKey, JSON.stringify(save));
+
+const STAGE_LAYOUT_MIGRATION_KEY = "runner_rush_stage_layout_v8";
+
+function mapOldStageToNew(oldStage) {
+  if (oldStage <= STAGES_PER_WORLD) {
+    return Math.min(oldStage, STAGES.length);
   }
+  const beaten = oldStage - 1;
+  return Math.min(STAGES.length, Math.ceil((beaten * STAGES.length) / 50) + 1);
 }
-if (STAGES.length > 30 && save.unlockedStage >= 30) {
-  save.unlockedStage = Math.max(save.unlockedStage, 31);
-  if (save.currentStage === 30) {
-    save.currentStage = 31;
-    localStorage.setItem(saveKey, JSON.stringify(save));
+
+if (localStorage.getItem(STAGE_LAYOUT_MIGRATION_KEY) !== "1") {
+  const oldUnlocked = save.unlockedStage;
+  const oldCurrent = save.currentStage;
+  if (oldUnlocked > STAGES_PER_WORLD || oldCurrent > STAGES_PER_WORLD) {
+    save.unlockedStage = mapOldStageToNew(oldUnlocked);
+    save.currentStage = Math.min(save.unlockedStage, mapOldStageToNew(oldCurrent));
+    if (save.unlockedStage === STAGES_PER_WORLD && oldUnlocked > STAGES_PER_WORLD) {
+      save.unlockedStage = WORLD2_START;
+    }
+    if (save.endlessUnlocked && save.unlockedStage >= STAGES_PER_WORLD * 2) {
+      save.unlockedStage = Math.max(save.unlockedStage, WORLD3_START);
+      if (save.currentStage === STAGES_PER_WORLD * 2) {
+        save.currentStage = WORLD3_START;
+      }
+    }
+    if (save.unlockedStage >= STAGES_PER_WORLD * 3) {
+      save.unlockedStage = Math.max(save.unlockedStage, WORLD4_START);
+      if (save.currentStage === STAGES_PER_WORLD * 3) {
+        save.currentStage = WORLD4_START;
+      }
+    }
+    if (save.unlockedStage >= STAGES_PER_WORLD * 4) {
+      save.unlockedStage = Math.max(save.unlockedStage, WORLD5_START);
+      if (save.currentStage === STAGES_PER_WORLD * 4) {
+        save.currentStage = WORLD5_START;
+      }
+    }
   }
-}
-if (STAGES.length > 40 && save.unlockedStage >= 40) {
-  save.unlockedStage = Math.max(save.unlockedStage, 41);
-  if (save.currentStage === 40) {
-    save.currentStage = 41;
-    localStorage.setItem(saveKey, JSON.stringify(save));
-  }
+  localStorage.setItem(STAGE_LAYOUT_MIGRATION_KEY, "1");
+  localStorage.setItem(saveKey, JSON.stringify(save));
 }
 
 function resolvePostgameStage(postgameParam) {
@@ -328,13 +342,13 @@ function resolvePostgameStage(postgameParam) {
     return STAGES.length;
   }
   if (postgameParam === "world2") {
-    return 11;
+    return WORLD2_START;
   }
   if (postgameParam === "world4") {
-    return 31;
+    return WORLD4_START;
   }
   if (postgameParam === "world5") {
-    return 41;
+    return WORLD5_START;
   }
   if (postgameParam === null || postgameParam === "") {
     return null;
@@ -1041,7 +1055,7 @@ function isVolcanicStage() {
 }
 
 function heatPulseInterval() {
-  return Math.max(210, 370 - (save.currentStage - 41) * 15);
+  return Math.max(210, 370 - (save.currentStage - WORLD5_START) * 15);
 }
 
 function resetHeatPulse() {
@@ -1096,20 +1110,20 @@ function frostSlipStrength() {
   if (!isFrostStage()) {
     return 0;
   }
-  return Math.min(1, 0.28 + (save.currentStage - 11) * 0.18);
+  return Math.min(1, 0.28 + (save.currentStage - WORLD2_START) * 0.18);
 }
 
 function getPendingWorldIntro() {
   if (endlessMode) {
     return null;
   }
-  if (save.currentStage === 11 && localStorage.getItem(world2IntroKey) !== "1") {
+  if (save.currentStage === WORLD2_START && localStorage.getItem(world2IntroKey) !== "1") {
     return 2;
   }
-  if (save.currentStage === 31 && localStorage.getItem(world4IntroKey) !== "1") {
+  if (save.currentStage === WORLD4_START && localStorage.getItem(world4IntroKey) !== "1") {
     return 4;
   }
-  if (save.currentStage === 41 && localStorage.getItem(world5IntroKey) !== "1") {
+  if (save.currentStage === WORLD5_START && localStorage.getItem(world5IntroKey) !== "1") {
     return 5;
   }
   return null;
@@ -1499,7 +1513,7 @@ function spawnFlyingObstacle(stageIndex) {
   let h;
   let baseY;
 
-  if (stageIndex >= 29 && roll < 0.22) {
+  if (stageIndex >= STAGES.length - 1 && roll < 0.22) {
     type = "fly_serpent";
     w = 50;
     h = 24;
@@ -1540,7 +1554,7 @@ function spawnFlyingObstacle(stageIndex) {
 
 function spawnAquaticObstacle(stageIndex) {
   const roll = Math.random();
-  if (stageIndex >= 39 && roll < 0.18) {
+  if (stageIndex >= STAGES.length - 1 && roll < 0.18) {
     const h = 24;
     const baseY = randomWaterY(h + 20);
     obstacles.push({
@@ -1640,13 +1654,13 @@ function spawnVolcanicObstacle(stageIndex) {
 }
 
 function flyingSpawnChance(stageIndex) {
-  if (stageIndex < 21) {
+  if (stageIndex < WORLD3_START) {
     return 0;
   }
   if (endlessMode) {
     return 0.44;
   }
-  return Math.min(0.62, 0.32 + (stageIndex - 21) * 0.035);
+  return Math.min(0.62, 0.32 + (stageIndex - WORLD3_START) * 0.035);
 }
 
 function spawnObstacle() {
@@ -1662,9 +1676,9 @@ function spawnObstacle() {
         x: canvas.width + 20,
         y: baseY,
         baseY,
-        w: stageIndex >= 50 ? 58 : 50,
+        w: stageIndex >= STAGES.length ? 58 : 50,
         h,
-        type: stageIndex >= 50 ? "fire_phoenix" : "fire_boss",
+        type: stageIndex >= STAGES.length ? "fire_phoenix" : "fire_boss",
         volcanic: true,
         phase: Math.random() * Math.PI * 2,
       });
@@ -1675,9 +1689,9 @@ function spawnObstacle() {
         x: canvas.width + 20,
         y: baseY,
         baseY,
-        w: stageIndex >= 40 ? 60 : 52,
+        w: stageIndex >= STAGES_PER_WORLD * 4 ? 60 : 52,
         h,
-        type: stageIndex >= 40 ? "swim_leviathan" : "swim_boss",
+        type: stageIndex >= STAGES_PER_WORLD * 4 ? "swim_leviathan" : "swim_boss",
         aquatic: true,
         phase: Math.random() * Math.PI * 2,
       });
@@ -1686,8 +1700,8 @@ function spawnObstacle() {
         x: canvas.width + 20,
         y: groundY - 92,
         baseY: groundY - 92,
-        w: stageIndex >= 30 ? 58 : 52,
-        h: stageIndex >= 30 ? 36 : 40,
+        w: stageIndex >= STAGES_PER_WORLD * 3 ? 58 : 52,
+        h: stageIndex >= STAGES_PER_WORLD * 3 ? 36 : 40,
         type: "fly_boss",
         flying: true,
         phase: Math.random() * Math.PI * 2,
@@ -1706,7 +1720,7 @@ function spawnObstacle() {
 
   if (stage.volcanic) {
     spawnVolcanicObstacle(stageIndex);
-    if (stageIndex >= 44 && Math.random() < 0.2) {
+    if (stageIndex >= STAGES.length - 4 && Math.random() < 0.2) {
       obstacles.push({
         x: canvas.width + 68,
         y: groundY - 34,
@@ -1720,7 +1734,7 @@ function spawnObstacle() {
 
   if (stage.swimming) {
     spawnAquaticObstacle(stageIndex);
-    if (stageIndex >= 34 && Math.random() < 0.22) {
+    if (stageIndex >= STAGES_PER_WORLD * 3 + 3 && Math.random() < 0.22) {
       obstacles.push({
         x: canvas.width + 72,
         y: randomWaterY(28),
@@ -1732,19 +1746,19 @@ function spawnObstacle() {
     return;
   }
 
-  if (stageIndex >= 21 && roll < flyingSpawnChance(stageIndex)) {
+  if (stageIndex >= WORLD3_START && roll < flyingSpawnChance(stageIndex)) {
     spawnFlyingObstacle(stageIndex);
-    if (stageIndex >= 24 && Math.random() < 0.24) {
+    if (stageIndex >= WORLD3_START + 3 && Math.random() < 0.24) {
       obstacles.push({ x: canvas.width + 72, y: groundY - 34, w: 30, h: 34, type: "low" });
     }
     return;
   }
-  if (stageIndex >= 12 && roll < 0.1) {
+  if (stageIndex >= WORLD2_START + 1 && roll < 0.1) {
     obstacles.push({ x: canvas.width + 20, y: groundY - 34, w: 30, h: 34, type: "low" });
     obstacles.push({ x: canvas.width + 58, y: groundY - 86, w: 34, h: 24, type: "high" });
     return;
   }
-  if (stageIndex >= 16 && roll < 0.18) {
+  if (stageIndex >= WORLD2_START + 5 && roll < 0.18) {
     obstacles.push({ x: canvas.width + 20, y: groundY - 62, w: 34, h: 62, type: "wall" });
     obstacles.push({ x: canvas.width + 72, y: groundY - 34, w: 30, h: 34, type: "low" });
     return;
@@ -2343,7 +2357,7 @@ function drawFlyingObstacle(obs) {
     return;
   }
 
-  if (obs.type === "fly_serpent" || (obs.type === "fly_boss" && save.currentStage >= 30)) {
+  if (obs.type === "fly_serpent" || (obs.type === "fly_boss" && save.currentStage >= STAGES_PER_WORLD * 3)) {
     ctx.strokeStyle = obs.type === "fly_boss" ? "#818cf8" : "#6366f1";
     ctx.lineWidth = obs.type === "fly_boss" ? 8 : 6;
     ctx.lineCap = "round";
