@@ -92,6 +92,16 @@ const STAGES = [
   { name: "Riptide Pass", targetScore: 3040, startSpeed: 8.8, accel: 0.0029, spawn: 11, boss: false, biome: "ocean", swimming: true },
   { name: "Mariana Sprint", targetScore: 3160, startSpeed: 8.85, accel: 0.00295, spawn: 11, boss: false, biome: "abyss", swimming: true },
   { name: "Final Boss: Leviathan", targetScore: 3300, startSpeed: 8.9, accel: 0.00305, spawn: 10, boss: true, biome: "abyss", swimming: true },
+  { name: "Cinder Trail", targetScore: 3420, startSpeed: 9.0, accel: 0.0031, spawn: 10, boss: false, biome: "lava", volcanic: true },
+  { name: "Molten Pass", targetScore: 3540, startSpeed: 9.05, accel: 0.00315, spawn: 9, boss: false, biome: "lava", volcanic: true },
+  { name: "Geyser Fields", targetScore: 3660, startSpeed: 9.1, accel: 0.0032, spawn: 9, boss: false, biome: "volcanic", volcanic: true },
+  { name: "Ashfall Ridge", targetScore: 3780, startSpeed: 9.15, accel: 0.00325, spawn: 8, boss: false, biome: "ember", volcanic: true },
+  { name: "Boss: Magma Wyrm", targetScore: 3920, startSpeed: 9.2, accel: 0.0033, spawn: 8, boss: true, biome: "inferno", volcanic: true },
+  { name: "Caldera Run", targetScore: 4060, startSpeed: 9.25, accel: 0.00335, spawn: 8, boss: false, biome: "volcanic", volcanic: true },
+  { name: "Hellforge", targetScore: 4200, startSpeed: 9.3, accel: 0.0034, spawn: 7, boss: false, biome: "inferno", volcanic: true },
+  { name: "Pyroclast Peaks", targetScore: 4340, startSpeed: 9.35, accel: 0.00345, spawn: 7, boss: false, biome: "lava", volcanic: true },
+  { name: "Burning Depths", targetScore: 4480, startSpeed: 9.4, accel: 0.0035, spawn: 6, boss: false, biome: "inferno", volcanic: true },
+  { name: "Final Boss: Phoenix King", targetScore: 4640, startSpeed: 9.45, accel: 0.0036, spawn: 6, boss: true, biome: "inferno", volcanic: true },
 ];
 
 const ENDLESS_CONFIG = {
@@ -219,11 +229,43 @@ const BIOME_PALETTES = {
     line: "#1e293b",
     clouds: "rgba(196, 181, 253, 0.22)",
   },
+  lava: {
+    sky: ["#7f1d1d", "#fb923c"],
+    ground: "#292524",
+    hills: "#44403c",
+    dunes: "rgba(251, 146, 60, 0.35)",
+    line: "#ea580c",
+    clouds: "rgba(254, 215, 170, 0.4)",
+  },
+  volcanic: {
+    sky: ["#431407", "#9a3412"],
+    ground: "#1c1917",
+    hills: "#292524",
+    dunes: "rgba(234, 88, 12, 0.28)",
+    line: "#c2410c",
+    clouds: "rgba(120, 113, 108, 0.45)",
+  },
+  ember: {
+    sky: ["#991b1b", "#fdba74"],
+    ground: "#44403c",
+    hills: "#57534e",
+    dunes: "rgba(248, 113, 113, 0.3)",
+    line: "#b45309",
+    clouds: "rgba(254, 202, 202, 0.35)",
+  },
+  inferno: {
+    sky: ["#450a0a", "#7f1d1d"],
+    ground: "#1c1917",
+    hills: "#292524",
+    dunes: "rgba(239, 68, 68, 0.32)",
+    line: "#dc2626",
+    clouds: "rgba(251, 191, 36, 0.25)",
+  },
 };
 
 /**
  * Post-game preview — flip on for local testing, off before release.
- * URL: ?postgame=N (stage 1–40), ?postgame=final, ?postgame=world2, ?postgame=world4, ?postgame=endless
+ * URL: ?postgame=N (stage 1–50), ?postgame=final, ?postgame=world2, ?postgame=world4, ?postgame=world5, ?postgame=endless
  */
 const GAME_CONFIG = {
   unlockPostGame: false,
@@ -270,6 +312,13 @@ if (STAGES.length > 30 && save.unlockedStage >= 30) {
     localStorage.setItem(saveKey, JSON.stringify(save));
   }
 }
+if (STAGES.length > 40 && save.unlockedStage >= 40) {
+  save.unlockedStage = Math.max(save.unlockedStage, 41);
+  if (save.currentStage === 40) {
+    save.currentStage = 41;
+    localStorage.setItem(saveKey, JSON.stringify(save));
+  }
+}
 
 function resolvePostgameStage(postgameParam) {
   if (postgameParam === "endless") {
@@ -283,6 +332,9 @@ function resolvePostgameStage(postgameParam) {
   }
   if (postgameParam === "world4") {
     return 31;
+  }
+  if (postgameParam === "world5") {
+    return 41;
   }
   if (postgameParam === null || postgameParam === "") {
     return null;
@@ -370,8 +422,12 @@ let sprinting = false;
 const EARLY_OBSTACLE_GRACE_FRAMES = 220;
 const world2IntroKey = "runner_rush_world2_intro_seen";
 const world4IntroKey = "runner_rush_world4_intro_seen";
+const world5IntroKey = "runner_rush_world5_intro_seen";
+const HEAT_PULSE_WARN_FRAMES = 78;
 const musicPrefKey = "runner_rush_music_enabled";
 let activeWorldIntro = null;
+let heatPulseTimer = 0;
+let heatPulseWarning = 0;
 let musicEnabled = localStorage.getItem(musicPrefKey) !== "false";
 let musicUnlocked = false;
 
@@ -980,6 +1036,62 @@ function isSwimmingStage() {
   return !endlessMode && currentStageConfig().swimming === true;
 }
 
+function isVolcanicStage() {
+  return !endlessMode && currentStageConfig().volcanic === true;
+}
+
+function heatPulseInterval() {
+  return Math.max(210, 370 - (save.currentStage - 41) * 15);
+}
+
+function resetHeatPulse() {
+  heatPulseTimer = isVolcanicStage() ? heatPulseInterval() : 0;
+  heatPulseWarning = 0;
+}
+
+function updateHeatPulse() {
+  if (!isVolcanicStage()) {
+    return;
+  }
+  if (heatPulseWarning > 0) {
+    heatPulseWarning -= 1;
+    if (heatPulseWarning === 0) {
+      const caughtInSurge =
+        player.grounded && !player.sliding && player.y + player.h >= groundY - 6;
+      if (caughtInSurge) {
+        if (player.shieldTimer > 0) {
+          player.shieldTimer = 0;
+          emitDust(player.x + player.w * 0.5, groundY - 4, true);
+        } else {
+          registerGameOver();
+          return;
+        }
+      }
+      heatPulseTimer = heatPulseInterval();
+    }
+    return;
+  }
+  heatPulseTimer -= 1;
+  if (heatPulseTimer <= 0) {
+    heatPulseWarning = HEAT_PULSE_WARN_FRAMES;
+  }
+}
+
+function applyStageWorldTransition(prevStage) {
+  const nextStage = currentStageConfig();
+  const modeChanged =
+    !!prevStage?.swimming !== !!nextStage.swimming ||
+    !!prevStage?.volcanic !== !!nextStage.volcanic ||
+    !!prevStage?.flying !== !!nextStage.flying ||
+    !!prevStage?.slippery !== !!nextStage.slippery;
+  if (!modeChanged) {
+    return;
+  }
+  obstacles = obstacles.filter((obs) => obs.x <= player.x + 36);
+  resetPlayerPosition();
+  resetHeatPulse();
+}
+
 function frostSlipStrength() {
   if (!isFrostStage()) {
     return 0;
@@ -997,6 +1109,9 @@ function getPendingWorldIntro() {
   if (save.currentStage === 31 && localStorage.getItem(world4IntroKey) !== "1") {
     return 4;
   }
+  if (save.currentStage === 41 && localStorage.getItem(world5IntroKey) !== "1") {
+    return 5;
+  }
   return null;
 }
 
@@ -1006,6 +1121,9 @@ function markWorldIntroSeen(worldId) {
   }
   if (worldId === 4) {
     localStorage.setItem(world4IntroKey, "1");
+  }
+  if (worldId === 5) {
+    localStorage.setItem(world5IntroKey, "1");
   }
 }
 
@@ -1160,16 +1278,18 @@ function emitDust(x, y, burst) {
   const count = burst ? 10 : 4;
   const snow = isFrostStage();
   const bubble = isSwimmingStage();
+  const ember = isVolcanicStage();
   for (let i = 0; i < count; i += 1) {
     dustParticles.push({
       x: x + Math.random() * 14 - 7,
       y: y + Math.random() * 4 - 2,
       vx: (Math.random() - 0.5) * 1.8 - speed * 0.09,
-      vy: bubble ? -0.6 - Math.random() * 1.4 : -Math.random() * (burst ? 1.7 : 0.9),
+      vy: bubble ? -0.6 - Math.random() * 1.4 : ember ? -0.8 - Math.random() * 1.6 : -Math.random() * (burst ? 1.7 : 0.9),
       life: burst ? 30 : 18,
       size: 2 + Math.random() * (burst ? 4 : 2),
       snow,
       bubble,
+      ember,
     });
   }
 }
@@ -1227,6 +1347,7 @@ function startRun() {
   powerupTimer = 0;
   reviveUsed = false;
   resetPlayerPosition();
+  resetHeatPulse();
   beginWorldIntroIfNeeded();
   updateHud();
 }
@@ -1268,6 +1389,7 @@ function resetEverything() {
   endlessMode = false;
   localStorage.removeItem(world2IntroKey);
   localStorage.removeItem(world4IntroKey);
+  localStorage.removeItem(world5IntroKey);
   persistSave();
 
   obstacles = [];
@@ -1475,6 +1597,48 @@ function spawnAquaticObstacle(stageIndex) {
   }
 }
 
+function spawnVolcanicObstacle(stageIndex) {
+  const roll = Math.random();
+  if (roll < 0.26) {
+    obstacles.push({
+      x: canvas.width + 20,
+      y: groundY - 72,
+      w: 30,
+      h: 72,
+      type: "fire_geyser",
+    });
+  } else if (roll < 0.5) {
+    const h = 28;
+    const baseY = groundY - 88 - Math.random() * 72;
+    obstacles.push({
+      x: canvas.width + 20,
+      y: baseY,
+      baseY,
+      w: 34,
+      h,
+      type: "fire_ember",
+      volcanic: true,
+      phase: Math.random() * Math.PI * 2,
+    });
+  } else if (roll < 0.76) {
+    obstacles.push({
+      x: canvas.width + 20,
+      y: groundY - 38,
+      w: 36,
+      h: 38,
+      type: "fire_rock",
+    });
+  } else {
+    obstacles.push({
+      x: canvas.width + 20,
+      y: groundY - 66,
+      w: 34,
+      h: 66,
+      type: "fire_pillar",
+    });
+  }
+}
+
 function flyingSpawnChance(stageIndex) {
   if (stageIndex < 21) {
     return 0;
@@ -1491,7 +1655,20 @@ function spawnObstacle() {
   const stageIndex = endlessMode ? STAGES.length + 1 : save.currentStage;
 
   if (stage.boss && roll < (endlessMode ? 0.28 : 0.2)) {
-    if (stage.swimming) {
+    if (stage.volcanic) {
+      const h = 46;
+      const baseY = groundY - 96;
+      obstacles.push({
+        x: canvas.width + 20,
+        y: baseY,
+        baseY,
+        w: stageIndex >= 50 ? 58 : 50,
+        h,
+        type: stageIndex >= 50 ? "fire_phoenix" : "fire_boss",
+        volcanic: true,
+        phase: Math.random() * Math.PI * 2,
+      });
+    } else if (stage.swimming) {
       const h = 42;
       const baseY = randomWaterY(h + 16);
       obstacles.push({
@@ -1522,6 +1699,20 @@ function spawnObstacle() {
         w: 44,
         h: 80,
         type: "boss",
+      });
+    }
+    return;
+  }
+
+  if (stage.volcanic) {
+    spawnVolcanicObstacle(stageIndex);
+    if (stageIndex >= 44 && Math.random() < 0.2) {
+      obstacles.push({
+        x: canvas.width + 68,
+        y: groundY - 34,
+        w: 30,
+        h: 34,
+        type: "fire_rock",
       });
     }
     return;
@@ -1602,6 +1793,7 @@ function registerGameOver() {
 function registerStageClear() {
   collectRunRewards(true);
   if (save.currentStage < STAGES.length) {
+    const prevStage = STAGES[save.currentStage - 1];
     if (save.unlockedStage === save.currentStage) {
       save.unlockedStage += 1;
     }
@@ -1609,6 +1801,7 @@ function registerStageClear() {
     persistSave();
     stageStartScore = score;
     speed = Math.max(speed, currentStageConfig().startSpeed);
+    applyStageWorldTransition(prevStage);
     updateHud();
     const pendingIntro = getPendingWorldIntro();
     if (pendingIntro !== null) {
@@ -1681,6 +1874,11 @@ function update() {
     player.shieldTimer -= 1;
   }
 
+  updateHeatPulse();
+  if (state !== "playing") {
+    return;
+  }
+
   const spawnThreshold = Math.max(
     endlessMode ? 22 : 38,
     stage.spawn - Math.floor(score * (endlessMode ? 0.018 : 0.012)),
@@ -1705,7 +1903,9 @@ function update() {
     speed = Math.min(9.4, speed);
   }
   score += 0.17 + currentSpeed * 0.012;
-  if (isSwimmingStage() && frame % 16 === 0) {
+  if (isVolcanicStage() && frame % 12 === 0) {
+    emitDust(player.x + 10, player.y + player.h - 6, false);
+  } else if (isSwimmingStage() && frame % 16 === 0) {
     emitDust(player.x + 34, player.y + 18, false);
   } else if (player.grounded && !player.sliding && frame % 10 === 0) {
     emitDust(player.x + 6, groundY, false);
@@ -1722,6 +1922,10 @@ function update() {
   for (let i = obstacles.length - 1; i >= 0; i -= 1) {
     const obs = obstacles[i];
     obs.x -= currentSpeed;
+    if (obs.volcanic && obs.baseY !== undefined) {
+      const bob = obs.type === "fire_phoenix" ? 10 : obs.type === "fire_boss" ? 8 : 6;
+      obs.y = obs.baseY + Math.sin(frame * 0.09 + obs.phase) * bob;
+    }
     if (obs.aquatic && obs.baseY !== undefined) {
       const bob = obs.type === "swim_leviathan" ? 9 : obs.type === "swim_boss" ? 8 : 6;
       obs.y = obs.baseY + Math.sin(frame * 0.08 + obs.phase) * bob;
@@ -1939,6 +2143,50 @@ function drawBackground() {
       ctx.lineTo(crackX + 8, groundY + 18);
       ctx.stroke();
     }
+  }
+
+  if (isVolcanicStage()) {
+    const lavaGrad = ctx.createLinearGradient(0, groundY - 8, 0, canvas.height);
+    lavaGrad.addColorStop(0, "rgba(251, 146, 60, 0.55)");
+    lavaGrad.addColorStop(0.45, "rgba(234, 88, 12, 0.75)");
+    lavaGrad.addColorStop(1, "rgba(124, 45, 18, 0.95)");
+    ctx.fillStyle = lavaGrad;
+    ctx.fillRect(0, groundY - 4, canvas.width, canvas.height - groundY + 4);
+    ctx.fillStyle = "rgba(253, 224, 71, 0.35)";
+    for (let i = 0; i < 6; i += 1) {
+      const bubbleX = (i * 163 + frame * 0.35) % (canvas.width + 40);
+      const bubbleR = 3 + (i % 3);
+      ctx.beginPath();
+      ctx.arc(bubbleX, groundY + 14 + (i % 4) * 8, bubbleR, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+function drawFireEffects() {
+  if (!isVolcanicStage()) {
+    return;
+  }
+
+  ctx.fillStyle = "rgba(251, 146, 60, 0.75)";
+  for (let i = 0; i < 28; i += 1) {
+    const ex = (i * 73 + frame * (0.4 + (i % 4) * 0.08)) % (canvas.width + 20) - 10;
+    const ey = groundY - 20 - ((i * 41 + frame * (0.7 + (i % 3) * 0.15)) % (canvas.height - groundY - 40));
+    const size = i % 3 === 0 ? 2.5 : 1.5;
+    ctx.beginPath();
+    ctx.arc(ex, ey, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  if (heatPulseWarning > 0) {
+    const pulse = 0.35 + (heatPulseWarning / HEAT_PULSE_WARN_FRAMES) * 0.45;
+    const surgeHeight = 36 + (1 - heatPulseWarning / HEAT_PULSE_WARN_FRAMES) * 48;
+    const warnGrad = ctx.createLinearGradient(0, groundY - surgeHeight, 0, groundY + 20);
+    warnGrad.addColorStop(0, "rgba(239, 68, 68, 0)");
+    warnGrad.addColorStop(0.55, `rgba(249, 115, 22, ${pulse * 0.55})`);
+    warnGrad.addColorStop(1, `rgba(220, 38, 38, ${pulse * 0.85})`);
+    ctx.fillStyle = warnGrad;
+    ctx.fillRect(0, groundY - surgeHeight, canvas.width, surgeHeight + 20);
   }
 }
 
@@ -2313,9 +2561,103 @@ function drawFrostObstacle(obs) {
   }
 }
 
+function drawVolcanicObstacle(obs) {
+  const cx = obs.x + obs.w * 0.5;
+  const cy = obs.y + obs.h * 0.5;
+
+  if (obs.type === "fire_phoenix" || obs.type === "fire_boss") {
+    const wingFlap = Math.sin(frame * 0.32 + obs.phase) * 8;
+    ctx.fillStyle = obs.type === "fire_phoenix" ? "#f97316" : "#ea580c";
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, obs.w * 0.2, obs.h * 0.26, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#fbbf24";
+    ctx.beginPath();
+    ctx.moveTo(cx - 6, cy);
+    ctx.quadraticCurveTo(obs.x - 12, cy - 14 - wingFlap, obs.x + 2, cy + 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx + 6, cy);
+    ctx.quadraticCurveTo(obs.x + obs.w + 12, cy - 12 + wingFlap, obs.x + obs.w - 2, cy + 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#fef3c7";
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 10);
+    ctx.lineTo(cx + 5, cy - 22 - Math.abs(wingFlap) * 0.2);
+    ctx.lineTo(cx + 10, cy - 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#111827";
+    ctx.fillRect(obs.x + obs.w - 12, cy - 2, 3, 3);
+    return;
+  }
+
+  if (obs.type === "fire_geyser") {
+    const geyserGrad = ctx.createLinearGradient(obs.x, obs.y, obs.x, obs.y + obs.h);
+    geyserGrad.addColorStop(0, "#fef08a");
+    geyserGrad.addColorStop(0.35, "#fb923c");
+    geyserGrad.addColorStop(1, "#7c2d12");
+    ctx.fillStyle = geyserGrad;
+    ctx.fillRect(obs.x + 4, obs.y, obs.w - 8, obs.h);
+    ctx.fillStyle = "rgba(254, 240, 138, 0.65)";
+    for (let g = 0; g < 3; g += 1) {
+      const gy = obs.y + 8 + g * 14 + Math.sin(frame * 0.25 + obs.x + g) * 3;
+      ctx.beginPath();
+      ctx.arc(obs.x + obs.w * 0.5, gy, 4 - g * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    return;
+  }
+
+  if (obs.type === "fire_ember") {
+    ctx.fillStyle = "rgba(251, 146, 60, 0.85)";
+    ctx.beginPath();
+    ctx.arc(cx, cy, obs.w * 0.38, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(254, 240, 138, 0.9)";
+    ctx.beginPath();
+    ctx.arc(cx - 3, cy - 3, obs.w * 0.14, 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+
+  if (obs.type === "fire_pillar") {
+    const pillarGrad = ctx.createLinearGradient(obs.x, obs.y, obs.x + obs.w, obs.y);
+    pillarGrad.addColorStop(0, "#44403c");
+    pillarGrad.addColorStop(0.5, "#78716c");
+    pillarGrad.addColorStop(1, "#292524");
+    ctx.fillStyle = pillarGrad;
+    ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+    ctx.strokeStyle = "#fb923c";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(obs.x + 6, obs.y + 8);
+    ctx.lineTo(obs.x + obs.w - 6, obs.y + obs.h - 8);
+    ctx.stroke();
+    return;
+  }
+
+  ctx.fillStyle = "#57534e";
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, obs.w * 0.46, obs.h * 0.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#fb923c";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(obs.x + 4, obs.y + 6);
+  ctx.lineTo(obs.x + obs.w - 4, obs.y + obs.h - 6);
+  ctx.stroke();
+}
+
 function drawObstacles() {
   const frost = currentStageConfig().biome === "frost";
   obstacles.forEach((obs) => {
+    if (obs.type?.startsWith("fire_") || obs.volcanic) {
+      drawVolcanicObstacle(obs);
+      return;
+    }
     if (obs.aquatic) {
       drawAquaticObstacle(obs);
       return;
@@ -2401,6 +2743,8 @@ function drawDustParticles() {
     const alpha = Math.max(0, p.life / 30);
     if (p.snow) {
       ctx.fillStyle = `rgba(224, 242, 254, ${alpha * 0.75})`;
+    } else if (p.ember) {
+      ctx.fillStyle = `rgba(251, 146, 60, ${alpha * 0.85})`;
     } else if (p.bubble) {
       ctx.strokeStyle = `rgba(224, 242, 254, ${alpha * 0.7})`;
       ctx.lineWidth = 1;
@@ -2431,7 +2775,18 @@ function drawOverlay() {
   ctx.textAlign = "center";
   if (state === "worldintro") {
     ctx.font = `14px ${FONT_TITLE}`;
-    if (activeWorldIntro === 4) {
+    if (activeWorldIntro === 5) {
+      ctx.fillStyle = "#fb923c";
+      ctx.fillText("World 5", canvas.width / 2, canvas.height / 2 - 72);
+      ctx.font = `24px ${FONT_TITLE}`;
+      ctx.fillStyle = "#f8fafc";
+      ctx.fillText("Fire Lands", canvas.width / 2, canvas.height / 2 - 36);
+      ctx.font = `16px ${FONT_UI}`;
+      ctx.fillStyle = "#cbd5e1";
+      ctx.fillText("Lava surges — jump or slide to survive.", canvas.width / 2, canvas.height / 2 + 4);
+      ctx.fillText("Watch for the glow at your feet.", canvas.width / 2, canvas.height / 2 + 30);
+      ctx.fillStyle = "#f97316";
+    } else if (activeWorldIntro === 4) {
       ctx.fillStyle = "#7dd3fc";
       ctx.fillText("World 4", canvas.width / 2, canvas.height / 2 - 72);
       ctx.font = `24px ${FONT_TITLE}`;
@@ -2495,6 +2850,7 @@ function loop() {
   drawBackground();
   drawFrostEffects();
   drawWaterEffects();
+  drawFireEffects();
   drawObstacles();
   drawCoins();
   drawPowerups();
