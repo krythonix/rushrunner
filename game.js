@@ -1585,23 +1585,40 @@ function frostSlipStrength() {
   return Math.min(1, 0.28 + (save.currentStage - WORLD3_START) * 0.18);
 }
 
-function getPendingWorldIntro() {
+function getWorldIntroForStage(stageIndex = save.currentStage) {
   if (endlessMode) {
     return null;
   }
-  if (save.currentStage === WORLD2_START && localStorage.getItem(world2IntroKey) !== "1") {
+  if (stageIndex === WORLD2_START) {
     return 2;
   }
-  if (save.currentStage === WORLD3_START && localStorage.getItem(world3IntroKey) !== "1") {
+  if (stageIndex === WORLD3_START) {
     return 3;
   }
-  if (save.currentStage === WORLD4_START && localStorage.getItem(world4IntroKey) !== "1") {
+  if (stageIndex === WORLD4_START) {
     return 4;
   }
-  if (save.currentStage === WORLD5_START && localStorage.getItem(world5IntroKey) !== "1") {
+  if (stageIndex === WORLD5_START) {
     return 5;
   }
   return null;
+}
+
+function getPendingWorldIntro() {
+  const worldIntro = getWorldIntroForStage();
+  if (worldIntro === null) {
+    return null;
+  }
+  const introKeys = {
+    2: world2IntroKey,
+    3: world3IntroKey,
+    4: world4IntroKey,
+    5: world5IntroKey,
+  };
+  if (localStorage.getItem(introKeys[worldIntro]) === "1") {
+    return null;
+  }
+  return worldIntro;
 }
 
 function markWorldIntroSeen(worldId) {
@@ -2483,9 +2500,9 @@ function registerStageClear() {
     persistSave();
     applyStageWorldTransition(prevStage);
     updateHud();
-    const pendingIntro = getPendingWorldIntro();
-    if (pendingIntro !== null) {
-      activeWorldIntro = pendingIntro;
+    const worldIntro = getWorldIntroForStage();
+    if (worldIntro !== null) {
+      activeWorldIntro = worldIntro;
       setState("worldintro");
     } else {
       continueAfterStageClear();
