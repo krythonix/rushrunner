@@ -460,6 +460,13 @@ function hideExitAppOverlay() {
   }
   exitAppOverlay.hidden = true;
   exitAppOverlay.classList.add("hidden");
+  if (isSmallScreen() && isStandaloneApp() && !isFullscreenActive()) {
+    userDismissedMobileFullscreen = false;
+    tryAutoMobileFullscreen();
+  }
+  ensureMusicPlayback();
+  layoutCanvasStage();
+  requestAnimationFrame(layoutCanvasStage);
 }
 
 async function exitApp() {
@@ -468,19 +475,6 @@ async function exitApp() {
     bgMusic.pause();
   }
   sprinting = false;
-
-  if (isFullscreenActive()) {
-    if (isSmallScreen()) {
-      userDismissedMobileFullscreen = true;
-    }
-    if (isNativeFullscreen()) {
-      await exitFullscreen();
-    }
-    if (pseudoFullscreen) {
-      exitPseudoFullscreen();
-    }
-  }
-  unlockOrientation();
 
   try {
     window.open("", "_self");
