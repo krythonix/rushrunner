@@ -25,6 +25,12 @@ function isAndroid() {
   return /Android/.test(navigator.userAgent);
 }
 
+window.RunnerRushPwa = {
+  isStandaloneApp,
+  isIOS,
+  isAndroid,
+};
+
 function installDismissed() {
   return localStorage.getItem("runner_rush_install_dismissed") === "1";
 }

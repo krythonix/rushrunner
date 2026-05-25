@@ -26,6 +26,10 @@ const menuToggleBtn = document.getElementById("menu-toggle-btn");
 const menuCloseBtn = document.getElementById("menu-close-btn");
 const gameMenu = document.getElementById("game-menu");
 const menuBackdrop = document.getElementById("menu-backdrop");
+const exitAppBtn = document.getElementById("exit-app-btn");
+const exitAppOverlay = document.getElementById("exit-app-overlay");
+const exitAppMessage = document.getElementById("exit-app-message");
+const exitAppDismissBtn = document.getElementById("exit-app-dismiss-btn");
 const fullscreenBtn = document.getElementById("fullscreen-btn");
 const gameShell = document.querySelector(".game-shell");
 const canvasWrap = document.querySelector(".canvas-wrap");
@@ -411,6 +415,85 @@ function isSmallScreen() {
   return window.matchMedia(
     "(max-width: 900px), (orientation: landscape) and (max-height: 500px)"
   ).matches;
+}
+
+function isStandaloneApp() {
+  return (
+    window.RunnerRushPwa?.isStandaloneApp?.() ??
+    (window.matchMedia("(display-mode: standalone)").matches ||
+      window.navigator.standalone === true)
+  );
+}
+
+function updateExitAppButton() {
+  if (!exitAppBtn) {
+    return;
+  }
+  exitAppBtn.hidden = !(isSmallScreen() && isStandaloneApp());
+}
+
+function getExitAppMessage() {
+  if (window.RunnerRushPwa?.isIOS?.()) {
+    return "Swipe up from the bottom of the screen to close Runner Rush, or press the Home button.";
+  }
+  if (window.RunnerRushPwa?.isAndroid?.()) {
+    return "Use your device's back button, recent-apps button, or swipe up from the bottom to leave Runner Rush.";
+  }
+  return "Use your device's home or app-switcher gesture to leave Runner Rush.";
+}
+
+function showExitAppOverlay() {
+  if (!exitAppOverlay) {
+    return;
+  }
+  if (exitAppMessage) {
+    exitAppMessage.textContent = getExitAppMessage();
+  }
+  exitAppOverlay.hidden = false;
+  exitAppOverlay.classList.remove("hidden");
+  exitAppDismissBtn?.focus();
+}
+
+function hideExitAppOverlay() {
+  if (!exitAppOverlay) {
+    return;
+  }
+  exitAppOverlay.hidden = true;
+  exitAppOverlay.classList.add("hidden");
+}
+
+async function exitApp() {
+  closeGameMenu();
+  if (bgMusic) {
+    bgMusic.pause();
+  }
+  sprinting = false;
+
+  if (isFullscreenActive()) {
+    if (isSmallScreen()) {
+      userDismissedMobileFullscreen = true;
+    }
+    if (isNativeFullscreen()) {
+      await exitFullscreen();
+    }
+    if (pseudoFullscreen) {
+      exitPseudoFullscreen();
+    }
+  }
+  unlockOrientation();
+
+  try {
+    window.open("", "_self");
+    window.close();
+  } catch {
+    // Browsers block close when the page wasn't opened by script.
+  }
+
+  window.setTimeout(() => {
+    if (document.visibilityState !== "hidden") {
+      showExitAppOverlay();
+    }
+  }, 250);
 }
 
 function useLandscapeCanvasLayout() {
@@ -1888,6 +1971,8 @@ resetEverythingBtn.addEventListener("click", () => {
   closeGameMenu();
   resetEverything();
 });
+exitAppBtn?.addEventListener("click", exitApp);
+exitAppDismissBtn?.addEventListener("click", hideExitAppOverlay);
 reviveBtn.addEventListener("click", () => {
   closeGameMenu();
   revive();
@@ -1915,7 +2000,10 @@ if (fullscreenBtn) {
 document.addEventListener("fullscreenchange", handleFullscreenChange);
 document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
 window.addEventListener("orientationchange", handleOrientationChange);
-window.addEventListener("resize", handleOrientationChange);
+window.addEventListener("resize", () => {
+  updateExitAppButton();
+  handleOrientationChange();
+});
 window.visualViewport?.addEventListener("resize", handleOrientationChange);
 window.visualViewport?.addEventListener("scroll", handleOrientationChange);
 
@@ -1947,6 +2035,7 @@ document.addEventListener("visibilitychange", () => {
 applyMusicSettings();
 updateMusicButton();
 updateFullscreenButton();
+updateExitAppButton();
 registerMusicGestureUnlock();
 setState("menu");
 updateHud();

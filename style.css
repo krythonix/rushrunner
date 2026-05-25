@@ -434,6 +434,15 @@ html.force-landscape-active .game-menu-header {
   color: #fecaca;
 }
 
+.menu-item-exit:not(:disabled) {
+  background: rgba(71, 85, 105, 0.35);
+  color: #cbd5e1;
+}
+
+.menu-item-exit[hidden] {
+  display: none;
+}
+
 .menu-item-icon {
   flex-shrink: 0;
   opacity: 0.92;
@@ -471,6 +480,66 @@ html.force-landscape-active .game-menu-header {
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.exit-app-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10040;
+  display: grid;
+  place-items: center;
+  padding:
+    max(16px, var(--safe-top))
+    max(16px, var(--safe-right))
+    max(16px, var(--safe-bottom))
+    max(16px, var(--safe-left));
+  background: rgba(2, 6, 23, 0.82);
+  backdrop-filter: blur(4px);
+  touch-action: manipulation;
+}
+
+.exit-app-overlay.hidden,
+.exit-app-overlay[hidden] {
+  display: none;
+}
+
+.exit-app-card {
+  width: min(100%, 360px);
+  padding: 20px 18px;
+  border-radius: 16px;
+  background: #0f172a;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+
+.exit-app-title {
+  margin: 0 0 10px;
+  font-family: "Russo One", Impact, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+}
+
+.exit-app-message {
+  margin: 0 0 16px;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #cbd5e1;
+}
+
+.exit-app-dismiss-btn {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: #38bdf8;
+  color: #082f49;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
 .install-banner {
