@@ -308,6 +308,50 @@ let sprinting = false;
 const EARLY_OBSTACLE_GRACE_FRAMES = 220;
 const musicPrefKey = "runner_rush_music_enabled";
 let musicEnabled = localStorage.getItem(musicPrefKey) !== "false";
+let musicUnlocked = false;
+
+function startMusicPlayback() {
+  if (!bgMusic || !musicEnabled || state !== "playing" || document.hidden) {
+    return;
+  }
+  applyMusicSettings();
+  const playAttempt = bgMusic.play();
+  if (playAttempt !== undefined) {
+    playAttempt.catch(() => {});
+  }
+}
+
+function unlockMusicFromGesture() {
+  if (!bgMusic || !musicEnabled || musicUnlocked) {
+    return;
+  }
+  applyMusicSettings();
+  const playAttempt = bgMusic.play();
+  if (playAttempt === undefined) {
+    musicUnlocked = true;
+    return;
+  }
+  playAttempt
+    .then(() => {
+      musicUnlocked = true;
+      if (state !== "playing") {
+        bgMusic.pause();
+        bgMusic.currentTime = 0;
+      } else {
+        startMusicPlayback();
+      }
+    })
+    .catch(() => {});
+}
+
+function registerMusicGestureUnlock() {
+  const onGesture = () => {
+    unlockMusicFromGesture();
+    startMusicPlayback();
+  };
+  document.addEventListener("pointerdown", onGesture, { passive: true });
+  document.addEventListener("keydown", onGesture);
+}
 
 function updateMusicButton() {
   if (!musicToggleBtn) {
@@ -756,15 +800,8 @@ function applyMusicSettings() {
   bgMusic.muted = !musicEnabled;
 }
 
-async function ensureMusicPlayback() {
-  if (!bgMusic || !musicEnabled || state !== "playing" || document.hidden) {
-    return;
-  }
-  try {
-    await bgMusic.play();
-  } catch (_err) {
-    // Ignore autoplay restrictions until next interaction.
-  }
+function ensureMusicPlayback() {
+  startMusicPlayback();
 }
 
 function toggleMusic() {
@@ -773,7 +810,8 @@ function toggleMusic() {
   applyMusicSettings();
   updateMusicButton();
   if (musicEnabled) {
-    ensureMusicPlayback();
+    unlockMusicFromGesture();
+    startMusicPlayback();
   } else if (bgMusic) {
     bgMusic.pause();
   }
@@ -1047,6 +1085,7 @@ function revive() {
 }
 
 function jump() {
+  unlockMusicFromGesture();
   if (state === "menu") {
     endlessMode = false;
     startRun();
@@ -1770,6 +1809,7 @@ window.addEventListener("keyup", (event) => {
 });
 
 function handleCanvasPointer(offsetY) {
+  unlockMusicFromGesture();
   if (state === "menu") {
     endlessMode = false;
     startRun();
@@ -1897,6 +1937,7 @@ document.addEventListener("visibilitychange", () => {
 applyMusicSettings();
 updateMusicButton();
 updateFullscreenButton();
+registerMusicGestureUnlock();
 setState("menu");
 updateHud();
 if (GAME_CONFIG.startInEndlessMode && save.endlessUnlocked) {
