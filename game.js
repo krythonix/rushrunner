@@ -121,6 +121,26 @@ const ENDLESS_CONFIG = {
   endless: true,
 };
 
+function stageTargetScore(stageIndex = save.currentStage) {
+  if (endlessMode) {
+    return ENDLESS_CONFIG.targetScore;
+  }
+  const stage = STAGES[stageIndex - 1];
+  if (!stage) {
+    return 0;
+  }
+  if (stageIndex >= 33) {
+    return Math.floor(stage.targetScore * 0.82);
+  }
+  if (stageIndex >= 25) {
+    return Math.floor(stage.targetScore * 0.88);
+  }
+  if (stageIndex >= 17) {
+    return Math.floor(stage.targetScore * 0.92);
+  }
+  return stage.targetScore;
+}
+
 const BIOME_PALETTES = {
   grass: {
     sky: ["#8bd5ff", "#d7f1ff"],
@@ -305,7 +325,7 @@ const world4IntroKey = "runner_rush_world4_intro_seen";
 const world5IntroKey = "runner_rush_world5_intro_seen";
 const defaultSave = {
   bestScore: 0,
-  bankCoins: 0,
+  bankCoins: 40,
   totalCoins: 0,
   jumpLevel: 1,
   magnetLevel: 0,
@@ -538,6 +558,10 @@ let reviveUsed = false;
 let sprinting = false;
 const EARLY_OBSTACLE_GRACE_FRAMES = 220;
 const HEAT_PULSE_WARN_FRAMES = 78;
+const REVIVE_COIN_COST = 40;
+const SCORE_BASE_PER_FRAME = 0.2;
+const SCORE_SPEED_FACTOR = 0.013;
+const STAGE_CLEAR_SHIELD_FRAMES = 120;
 const musicPrefKey = "runner_rush_music_enabled";
 let activeWorldIntro = null;
 let heatPulseTimer = 0;
@@ -842,7 +866,7 @@ function updateMenuAlert() {
   if (!menuToggleBtn) {
     return;
   }
-  const reviveReady = state === "gameover" && !reviveUsed && save.bankCoins >= 50;
+  const reviveReady = state === "gameover" && !reviveUsed && save.bankCoins >= REVIVE_COIN_COST;
   menuToggleBtn.classList.toggle("has-alert", reviveReady);
 }
 
@@ -1564,8 +1588,9 @@ function updateHud() {
     missionEl.textContent = `${stageProgress} · best ${save.endlessBest}`;
   } else {
     levelEl.textContent = `${save.currentStage}/${STAGES.length}`;
-    const capped = Math.min(stageProgress, stage.targetScore);
-    missionEl.textContent = `${stage.name} · ${capped}/${stage.targetScore}`;
+    const goal = stageTargetScore();
+    const capped = Math.min(stageProgress, goal);
+    missionEl.textContent = `${stage.name} · ${capped}/${goal}`;
   }
   if (upgradeJumpMeta) {
     upgradeJumpMeta.textContent = String(jumpUpgradeCost());
@@ -1701,7 +1726,7 @@ function setState(nextState) {
   const playing = nextState === "playing";
   restartBtn.disabled = playing;
   restartStageZeroBtn.disabled = playing;
-  reviveBtn.disabled = !(nextState === "gameover" && !reviveUsed && save.bankCoins >= 50);
+  reviveBtn.disabled = !(nextState === "gameover" && !reviveUsed && save.bankCoins >= REVIVE_COIN_COST);
 
   if (nextState === "gameover") {
     updateRestartLabel(endlessMode ? "Retry endless" : "Retry stage");
@@ -1748,7 +1773,7 @@ function emitDust(x, y, burst) {
 }
 
 function collectRunRewards(completedStage) {
-  const stageBonus = completedStage ? 60 + save.currentStage * 15 : 0;
+  const stageBonus = completedStage ? 80 + save.currentStage * 14 : 0;
   const earnedCoins = Math.max(0, runCoins - rewardCheckpointCoins);
   const earnedScore = Math.max(0, Math.floor((score - rewardCheckpointScore) / 24));
   const earned = earnedCoins + earnedScore + stageBonus;
@@ -1782,7 +1807,7 @@ function exitEndlessMode() {
   updateHud();
 }
 
-function startRun() {
+function startRun(options = {}) {
   const stage = currentStageConfig();
   obstacles = [];
   coins = [];
@@ -1801,25 +1826,26 @@ function startRun() {
   reviveUsed = false;
   resetPlayerPosition();
   resetHeatPulse();
+  if (options.continueAfterClear) {
+    player.shieldTimer = STAGE_CLEAR_SHIELD_FRAMES;
+  }
   syncWorldAudioProfile(true);
   beginWorldIntroIfNeeded();
   updateHud();
 }
 
 function restart() {
-  if (state === "stageclear") {
-    if (save.currentStage < STAGES.length) {
-      save.currentStage += 1;
-      endlessMode = false;
-    } else if (save.endlessUnlocked && !endlessMode) {
+  const continuingStage = state === "stageclear";
+  if (continuingStage) {
+    if (save.currentStage >= STAGES.length && save.endlessUnlocked && !endlessMode) {
       endlessMode = true;
-    } else {
-      save.currentStage = 1;
+    } else if (save.currentStage > STAGES.length) {
+      save.currentStage = STAGES.length;
       endlessMode = false;
     }
     persistSave();
   }
-  startRun();
+  startRun({ continueAfterClear: continuingStage && save.currentStage <= STAGES.length });
 }
 
 function restartFromStageZero() {
@@ -1871,10 +1897,10 @@ function resetEverything() {
 }
 
 function revive() {
-  if (state !== "gameover" || reviveUsed || save.bankCoins < 50) {
+  if (state !== "gameover" || reviveUsed || save.bankCoins < REVIVE_COIN_COST) {
     return;
   }
-  save.bankCoins -= 50;
+  save.bankCoins -= REVIVE_COIN_COST;
   reviveUsed = true;
   player.shieldTimer = 160;
   obstacles = obstacles.filter((obs) => obs.x > player.x + 45);
@@ -2309,21 +2335,20 @@ function registerStageClear() {
     }
     save.currentStage += 1;
     persistSave();
-    stageStartScore = score;
-    speed = Math.max(speed, currentStageConfig().startSpeed);
     applyStageWorldTransition(prevStage);
     updateHud();
     const pendingIntro = getPendingWorldIntro();
     if (pendingIntro !== null) {
       activeWorldIntro = pendingIntro;
       setState("worldintro");
+    } else {
+      setState("stageclear");
     }
     return;
   }
 
   save.endlessUnlocked = true;
   persistSave();
-  stageStartScore = score;
   setState("stageclear");
   updateHud();
 }
@@ -2366,7 +2391,7 @@ function update() {
           player.sliding = true;
           player.slideTimer = Math.max(
             player.slideTimer,
-            Math.floor(10 + frostSlipStrength() * 12),
+            Math.floor(8 + frostSlipStrength() * 9),
           );
         }
       }
@@ -2389,9 +2414,10 @@ function update() {
     return;
   }
 
+  const stageProgressScore = Math.max(0, score - stageStartScore);
   const spawnThreshold = Math.max(
     endlessMode ? 22 : 38,
-    stage.spawn - Math.floor(score * (endlessMode ? 0.018 : 0.012)),
+    stage.spawn - Math.floor(stageProgressScore * (endlessMode ? 0.018 : 0.01)),
   );
   const earlySpawnBonus = frame < 420 ? Math.floor((420 - frame) / 12) : 0;
   const adjustedSpawnThreshold = spawnThreshold + earlySpawnBonus;
@@ -2412,7 +2438,7 @@ function update() {
   if (endlessMode) {
     speed = Math.min(9.4, speed);
   }
-  score += 0.17 + currentSpeed * 0.012;
+  score += SCORE_BASE_PER_FRAME + currentSpeed * SCORE_SPEED_FACTOR;
   if (isVolcanicStage() && frame % 12 === 0) {
     emitDust(player.x + 10, player.y + player.h - 6, false);
   } else if (isSwimmingStage() && frame % 16 === 0) {
@@ -2423,7 +2449,7 @@ function update() {
     emitDust(player.x + player.w * 0.5, groundY, false);
   }
 
-  if (!endlessMode && Math.floor(score - stageStartScore) >= stage.targetScore) {
+  if (!endlessMode && Math.floor(score - stageStartScore) >= stageTargetScore()) {
     registerStageClear();
     return;
   }
@@ -3558,14 +3584,17 @@ function drawOverlay() {
       ctx.fillText("Tap to play · Space to start", canvas.width / 2, canvas.height / 2 + 24);
     }
   } else if (state === "stageclear") {
-    const finishedAllStages = save.currentStage >= STAGES.length;
+    const finishedAllStages = save.endlessUnlocked && save.currentStage >= STAGES.length;
     ctx.font = `22px ${FONT_TITLE}`;
     ctx.fillText(finishedAllStages ? "Campaign Complete!" : "Stage Cleared!", canvas.width / 2, canvas.height / 2 - 24);
     ctx.font = `18px ${FONT_UI}`;
     if (finishedAllStages) {
       ctx.fillText(`All ${STAGES.length} stages beaten!`, canvas.width / 2, canvas.height / 2 + 10);
+      ctx.fillText("Endless mode unlocked", canvas.width / 2, canvas.height / 2 + 36);
     } else {
-      ctx.fillText(`Next: Stage ${save.currentStage + 1}`, canvas.width / 2, canvas.height / 2 + 10);
+      const clearedStage = STAGES[save.currentStage - 2];
+      ctx.fillText(clearedStage ? `${clearedStage.name} complete` : "Nice run!", canvas.width / 2, canvas.height / 2 + 6);
+      ctx.fillText(`Next: ${currentStageConfig().name}`, canvas.width / 2, canvas.height / 2 + 32);
     }
     drawOverlayContinueButton();
   } else {
