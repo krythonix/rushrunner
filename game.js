@@ -364,9 +364,12 @@ function updateMusicButton() {
   musicToggleBtn.setAttribute("aria-label", musicEnabled ? "Turn music off" : "Turn music on");
 }
 
-function openGameMenu() {
+async function openGameMenu() {
   if (!gameMenu || !menuBackdrop) {
     return;
+  }
+  if (isSmallScreen() && isFullscreenActive()) {
+    await ensureLandscape();
   }
   gameMenu.classList.add("open");
   gameMenu.setAttribute("aria-hidden", "false");
@@ -777,8 +780,11 @@ async function toggleFullscreen() {
 }
 
 async function handleOrientationChange() {
+  if (isLandscape()) {
+    clearForceLandscape();
+  }
   await tryAutoMobileFullscreen();
-  if (!isFullscreenActive()) {
+  if (!isFullscreenActive() || !isLandscape()) {
     layoutCanvasStage();
   }
 }
