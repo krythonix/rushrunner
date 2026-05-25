@@ -260,8 +260,15 @@ const BIOME_PALETTES = {
 };
 
 /**
- * Post-game preview — flip on for local testing, off before release.
- * URL: ?postgame=N (stage 1–40), ?postgame=final, ?postgame=world2, ?postgame=world4, ?postgame=world5, ?postgame=endless
+ * Dev preview URLs (local testing only):
+ *   ?worldintro=2|3|4|5     — show that world intro immediately on load
+ *   ?postgame=world2      — start at stage 9 (World 2), intro on Play
+ *   ?postgame=world3      — start at stage 17 (World 3)
+ *   ?postgame=world4      — start at stage 25 (World 4)
+ *   ?postgame=world5      — start at stage 33 (World 5)
+ *   ?postgame=N           — start at stage N (1–40)
+ *   ?postgame=final       — last stage
+ *   ?postgame=endless     — endless mode
  */
 const GAME_CONFIG = {
   unlockPostGame: false,
@@ -273,8 +280,20 @@ const GAME_CONFIG = {
 
 let endlessMode = false;
 let previewMode = false;
+let worldIntroBeforeRun = false;
+
+const WORLD_INTRO_PREVIEW = {
+  2: WORLD2_START,
+  3: WORLD3_START,
+  4: WORLD4_START,
+  5: WORLD5_START,
+};
 
 const saveKey = "runner_rush_save_v3";
+const world2IntroKey = "runner_rush_world2_intro_seen";
+const world3IntroKey = "runner_rush_world3_intro_seen";
+const world4IntroKey = "runner_rush_world4_intro_seen";
+const world5IntroKey = "runner_rush_world5_intro_seen";
 const defaultSave = {
   bestScore: 0,
   bankCoins: 0,
@@ -344,6 +363,9 @@ function resolvePostgameStage(postgameParam) {
   if (postgameParam === "world2") {
     return WORLD2_START;
   }
+  if (postgameParam === "world3") {
+    return WORLD3_START;
+  }
   if (postgameParam === "world4") {
     return WORLD4_START;
   }
@@ -360,10 +382,50 @@ function resolvePostgameStage(postgameParam) {
   return Math.max(1, Math.min(STAGES.length, parsed));
 }
 
+function clearWorldIntroSeen(worldId) {
+  if (worldId === 2) {
+    localStorage.removeItem(world2IntroKey);
+  }
+  if (worldId === 3) {
+    localStorage.removeItem(world3IntroKey);
+  }
+  if (worldId === 4) {
+    localStorage.removeItem(world4IntroKey);
+  }
+  if (worldId === 5) {
+    localStorage.removeItem(world5IntroKey);
+  }
+}
+
+function resolveWorldIntroPreview(param) {
+  if (param === null || param === "") {
+    return null;
+  }
+  const world = Number.parseInt(param, 10);
+  if (!Number.isFinite(world) || !WORLD_INTRO_PREVIEW[world]) {
+    return null;
+  }
+  return world;
+}
+
+function applyWorldIntroPreview(worldId) {
+  const stage = WORLD_INTRO_PREVIEW[worldId];
+  clearWorldIntroSeen(worldId);
+  save.currentStage = stage;
+  save.unlockedStage = Math.max(save.unlockedStage, stage);
+  save.endlessUnlocked = true;
+  activeWorldIntro = worldId;
+  worldIntroBeforeRun = true;
+  setState("worldintro");
+  updateHud();
+}
+
 function applyGameConfig() {
   const params = new URLSearchParams(window.location.search);
   const postgameParam = params.get("postgame");
-  previewMode = GAME_CONFIG.unlockPostGame || postgameParam !== null;
+  const worldIntroParam = params.get("worldintro");
+  previewMode =
+    GAME_CONFIG.unlockPostGame || postgameParam !== null || worldIntroParam !== null;
   if (!previewMode) {
     return;
   }
@@ -382,6 +444,20 @@ function applyGameConfig() {
       save.unlockedStage = Math.max(save.unlockedStage, stage);
       save.endlessUnlocked = true;
       persistPostgameStage = true;
+      if (postgameParam === "world2") {
+        clearWorldIntroSeen(2);
+      }
+      if (postgameParam === "world3") {
+        clearWorldIntroSeen(3);
+      }
+      if (postgameParam === "world4") {
+        clearWorldIntroSeen(4);
+      }
+      if (postgameParam === "world5") {
+        clearWorldIntroSeen(5);
+      }
+    } else if (resolveWorldIntroPreview(worldIntroParam) !== null) {
+      save.endlessUnlocked = true;
     } else {
       save.currentStage = Math.max(1, Math.min(STAGES.length, GAME_CONFIG.startStage || STAGES.length));
       if (GAME_CONFIG.unlockEndless) {
@@ -400,6 +476,16 @@ function applyGameConfig() {
   if (persistPostgameStage) {
     localStorage.setItem(saveKey, JSON.stringify(save));
   }
+}
+
+function bootWorldIntroPreviewFromUrl() {
+  const worldIntroParam = new URLSearchParams(window.location.search).get("worldintro");
+  const previewWorld = resolveWorldIntroPreview(worldIntroParam);
+  if (previewWorld === null) {
+    return false;
+  }
+  applyWorldIntroPreview(previewWorld);
+  return true;
 }
 
 applyGameConfig();
@@ -434,14 +520,15 @@ let state = "menu";
 let reviveUsed = false;
 let sprinting = false;
 const EARLY_OBSTACLE_GRACE_FRAMES = 220;
-const world2IntroKey = "runner_rush_world2_intro_seen";
-const world4IntroKey = "runner_rush_world4_intro_seen";
-const world5IntroKey = "runner_rush_world5_intro_seen";
 const HEAT_PULSE_WARN_FRAMES = 78;
 const musicPrefKey = "runner_rush_music_enabled";
 let activeWorldIntro = null;
 let heatPulseTimer = 0;
 let heatPulseWarning = 0;
+const OVERLAY_READ_MS = 750;
+let overlayEpoch = 0;
+let overlayShownAt = 0;
+let pointerOverlayEpoch = null;
 let musicEnabled = localStorage.getItem(musicPrefKey) !== "false";
 let musicUnlocked = false;
 
@@ -1120,6 +1207,9 @@ function getPendingWorldIntro() {
   if (save.currentStage === WORLD2_START && localStorage.getItem(world2IntroKey) !== "1") {
     return 2;
   }
+  if (save.currentStage === WORLD3_START && localStorage.getItem(world3IntroKey) !== "1") {
+    return 3;
+  }
   if (save.currentStage === WORLD4_START && localStorage.getItem(world4IntroKey) !== "1") {
     return 4;
   }
@@ -1132,6 +1222,9 @@ function getPendingWorldIntro() {
 function markWorldIntroSeen(worldId) {
   if (worldId === 2) {
     localStorage.setItem(world2IntroKey, "1");
+  }
+  if (worldId === 3) {
+    localStorage.setItem(world3IntroKey, "1");
   }
   if (worldId === 4) {
     localStorage.setItem(world4IntroKey, "1");
@@ -1146,6 +1239,12 @@ function dismissWorldIntro() {
     markWorldIntroSeen(activeWorldIntro);
   }
   activeWorldIntro = null;
+  if (worldIntroBeforeRun) {
+    worldIntroBeforeRun = false;
+    unlockMusicFromGesture();
+    startRun();
+    return;
+  }
   setState("playing");
   unlockMusicFromGesture();
   startMusicPlayback();
@@ -1258,8 +1357,111 @@ function updateRestartLabel(text) {
   }
 }
 
+function markOverlayShown() {
+  overlayEpoch += 1;
+  overlayShownAt = performance.now();
+}
+
+function overlayContinueReady() {
+  return performance.now() - overlayShownAt >= OVERLAY_READ_MS;
+}
+
+function getOverlayContinueButton() {
+  const w = Math.min(220, canvas.width * 0.48);
+  const h = 44;
+  const x = (canvas.width - w) / 2;
+  let y = canvas.height / 2 + 56;
+  if (state === "worldintro") {
+    y = canvas.height / 2 + 88;
+  } else if (state === "stageclear") {
+    y = canvas.height / 2 + 72;
+  }
+  return { x, y, w, h };
+}
+
+function overlayContinueLabel() {
+  if (state === "gameover") {
+    return "Try again";
+  }
+  if (state === "stageclear") {
+    return save.currentStage >= STAGES.length && save.endlessUnlocked ? "Endless mode" : "Continue";
+  }
+  return "Continue";
+}
+
+function canvasPointFromOffset(offsetX, offsetY) {
+  const scaleX = canvas.width / canvas.offsetWidth;
+  const scaleY = canvas.height / canvas.offsetHeight;
+  return { x: offsetX * scaleX, y: offsetY * scaleY };
+}
+
+function isPointInOverlayButton(offsetX, offsetY) {
+  const point = canvasPointFromOffset(offsetX, offsetY);
+  const btn = getOverlayContinueButton();
+  return (
+    point.x >= btn.x &&
+    point.x <= btn.x + btn.w &&
+    point.y >= btn.y &&
+    point.y <= btn.y + btn.h
+  );
+}
+
+function drawOverlayContinueButton() {
+  const ready = overlayContinueReady();
+  const btn = getOverlayContinueButton();
+  const radius = 10;
+
+  ctx.beginPath();
+  ctx.moveTo(btn.x + radius, btn.y);
+  ctx.lineTo(btn.x + btn.w - radius, btn.y);
+  ctx.quadraticCurveTo(btn.x + btn.w, btn.y, btn.x + btn.w, btn.y + radius);
+  ctx.lineTo(btn.x + btn.w, btn.y + btn.h - radius);
+  ctx.quadraticCurveTo(btn.x + btn.w, btn.y + btn.h, btn.x + btn.w - radius, btn.y + btn.h);
+  ctx.lineTo(btn.x + radius, btn.y + btn.h);
+  ctx.quadraticCurveTo(btn.x, btn.y + btn.h, btn.x, btn.y + btn.h - radius);
+  ctx.lineTo(btn.x, btn.y + radius);
+  ctx.quadraticCurveTo(btn.x, btn.y, btn.x + radius, btn.y);
+  ctx.closePath();
+
+  ctx.fillStyle = ready ? "rgba(0, 0, 0, 0.18)" : "rgba(0, 0, 0, 0.08)";
+  ctx.fill();
+  ctx.strokeStyle = ready ? "rgba(255, 255, 255, 0.62)" : "rgba(255, 255, 255, 0.32)";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.font = `16px ${FONT_UI}`;
+  ctx.fillStyle = ready ? "rgba(255, 255, 255, 0.95)" : "rgba(255, 255, 255, 0.45)";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(overlayContinueLabel(), btn.x + btn.w / 2, btn.y + btn.h / 2);
+}
+
+function tryOverlayContinue(offsetX, offsetY) {
+  if (state !== "gameover" && state !== "worldintro" && state !== "stageclear") {
+    return false;
+  }
+  if (pointerOverlayEpoch !== overlayEpoch) {
+    return true;
+  }
+  if (!overlayContinueReady()) {
+    return true;
+  }
+  if (!isPointInOverlayButton(offsetX, offsetY)) {
+    return true;
+  }
+  if (state === "worldintro") {
+    dismissWorldIntro();
+  } else {
+    restart();
+  }
+  return true;
+}
+
 function setState(nextState) {
   state = nextState;
+  if (nextState === "gameover" || nextState === "worldintro" || nextState === "stageclear") {
+    markOverlayShown();
+  }
   const playing = nextState === "playing";
   restartBtn.disabled = playing;
   restartStageZeroBtn.disabled = playing;
@@ -1403,6 +1605,7 @@ function resetEverything() {
   Object.assign(save, defaultSave);
   endlessMode = false;
   localStorage.removeItem(world2IntroKey);
+  localStorage.removeItem(world3IntroKey);
   localStorage.removeItem(world4IntroKey);
   localStorage.removeItem(world5IntroKey);
   persistSave();
@@ -2812,7 +3015,18 @@ function drawOverlay() {
       ctx.fillText("Tap top to swim up, bottom to dive.", canvas.width / 2, canvas.height / 2 + 4);
       ctx.fillText("Dodge coral, kelp, and sea creatures.", canvas.width / 2, canvas.height / 2 + 30);
       ctx.fillStyle = "#38bdf8";
-    } else {
+    } else if (activeWorldIntro === 3) {
+      ctx.fillStyle = "#c4b5fd";
+      ctx.fillText("World 3", canvas.width / 2, canvas.height / 2 - 72);
+      ctx.font = `24px ${FONT_TITLE}`;
+      ctx.fillStyle = "#f8fafc";
+      ctx.fillText("Sky Realm", canvas.width / 2, canvas.height / 2 - 36);
+      ctx.font = `16px ${FONT_UI}`;
+      ctx.fillStyle = "#cbd5e1";
+      ctx.fillText("You're in the air — bats, hawks, and drones ahead.", canvas.width / 2, canvas.height / 2 + 4);
+      ctx.fillText("Jump and slide to dodge aerial obstacles.", canvas.width / 2, canvas.height / 2 + 30);
+      ctx.fillStyle = "#a78bfa";
+    } else if (activeWorldIntro === 2) {
       ctx.fillStyle = "#bae6fd";
       ctx.fillText("World 2", canvas.width / 2, canvas.height / 2 - 72);
       ctx.font = `24px ${FONT_TITLE}`;
@@ -2824,7 +3038,7 @@ function drawOverlay() {
       ctx.fillText("Slides last longer — time your jumps.", canvas.width / 2, canvas.height / 2 + 30);
       ctx.fillStyle = "#7dd3fc";
     }
-    ctx.fillText("Tap to continue", canvas.width / 2, canvas.height / 2 + 68);
+    drawOverlayContinueButton();
   } else if (state === "menu") {
     ctx.font = `24px ${FONT_TITLE}`;
     ctx.fillText("Runner Rush", canvas.width / 2, canvas.height / 2 - 36);
@@ -2843,11 +3057,10 @@ function drawOverlay() {
     ctx.font = `18px ${FONT_UI}`;
     if (finishedAllStages) {
       ctx.fillText(`All ${STAGES.length} stages beaten!`, canvas.width / 2, canvas.height / 2 + 10);
-      ctx.fillText("Tap Endless Mode for survival run", canvas.width / 2, canvas.height / 2 + 40);
     } else {
       ctx.fillText(`Next: Stage ${save.currentStage + 1}`, canvas.width / 2, canvas.height / 2 + 10);
-      ctx.fillText("Tap Restart to continue", canvas.width / 2, canvas.height / 2 + 40);
     }
+    drawOverlayContinueButton();
   } else {
     ctx.font = `26px ${FONT_TITLE}`;
     ctx.fillText(endlessMode ? "Endless Over" : "Game Over", canvas.width / 2, canvas.height / 2 - 12);
@@ -2857,6 +3070,7 @@ function drawOverlay() {
     } else {
       ctx.fillText("Retry the current stage", canvas.width / 2, canvas.height / 2 + 24);
     }
+    drawOverlayContinueButton();
   }
 }
 
@@ -2883,12 +3097,7 @@ window.addEventListener("keydown", (event) => {
   }
   if (event.code === "Space" || event.code === "ArrowUp") {
     event.preventDefault();
-    if (state === "worldintro") {
-      dismissWorldIntro();
-      return;
-    }
-    if (state === "gameover") {
-      restart();
+    if (state === "worldintro" || state === "gameover" || state === "stageclear") {
       return;
     }
     jump();
@@ -2901,7 +3110,27 @@ window.addEventListener("keydown", (event) => {
     event.preventDefault();
     sprinting = true;
   }
+  if (event.code === "Enter") {
+    if (
+      (state === "gameover" || state === "worldintro" || state === "stageclear") &&
+      overlayContinueReady()
+    ) {
+      event.preventDefault();
+      if (state === "worldintro") {
+        dismissWorldIntro();
+      } else {
+        restart();
+      }
+      return;
+    }
+  }
   if (event.code === "KeyR") {
+    if (state === "gameover" || state === "stageclear") {
+      if (overlayContinueReady()) {
+        restart();
+      }
+      return;
+    }
     restart();
   }
   if (event.code === "KeyE" && state === "menu" && save.endlessUnlocked) {
@@ -2915,19 +3144,14 @@ window.addEventListener("keyup", (event) => {
   }
 });
 
-function handleCanvasPointer(offsetY) {
+function handleCanvasPointer(offsetX, offsetY) {
   unlockMusicFromGesture();
-  if (state === "worldintro") {
-    dismissWorldIntro();
+  if (tryOverlayContinue(offsetX, offsetY)) {
     return;
   }
   if (state === "menu") {
     endlessMode = false;
     startRun();
-    return;
-  }
-  if (state === "gameover") {
-    restart();
     return;
   }
   if (offsetY < canvas.offsetHeight / 2) {
@@ -3003,6 +3227,7 @@ canvas.addEventListener("pointerdown", (event) => {
   if (event.pointerType === "touch") {
     event.preventDefault();
   }
+  pointerOverlayEpoch = overlayEpoch;
   pointerStartOffsetY = event.offsetY;
   pointerStartOffsetX = event.offsetX;
   activePointerId = event.pointerId;
@@ -3015,6 +3240,7 @@ canvas.addEventListener("pointerup", (event) => {
   }
 
   const offsetY = pointerStartOffsetY ?? event.offsetY;
+  const offsetX = pointerStartOffsetX ?? event.offsetX;
   const wasSprintHold = sprintHoldActive;
   endSprintHold();
   pointerStartOffsetY = null;
@@ -3025,7 +3251,7 @@ canvas.addEventListener("pointerup", (event) => {
     return;
   }
 
-  handleCanvasPointer(offsetY);
+  handleCanvasPointer(offsetX, offsetY);
 });
 
 canvas.addEventListener("pointercancel", (event) => {
@@ -3142,7 +3368,9 @@ updateMusicButton();
 updateFullscreenButton();
 updateExitAppButton();
 registerMusicGestureUnlock();
-setState("menu");
+if (!bootWorldIntroPreviewFromUrl()) {
+  setState("menu");
+}
 updateHud();
 if (GAME_CONFIG.startInEndlessMode && save.endlessUnlocked) {
   startEndlessRun();
