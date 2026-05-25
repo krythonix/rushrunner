@@ -42,6 +42,12 @@ const FONT_TITLE = '"Press Start 2P", monospace';
 const FONT_UI = '"Russo One", sans-serif';
 
 const groundY = canvas.height - 68;
+const WATER_TOP = 68;
+const WATER_BOTTOM = groundY - 20;
+const WATER_SINK = 0.13;
+const SWIM_UP_FORCE = -5.6;
+const SWIM_DOWN_FORCE = 4.4;
+const WATER_DRAG = 0.968;
 const gravity = 0.84;
 const baseJumpForce = -14.8;
 
@@ -56,11 +62,11 @@ const STAGES = [
   { name: "Storm Flats", targetScore: 365, startSpeed: 4.9, accel: 0.00125, spawn: 53, boss: false, biome: "storm" },
   { name: "Night Canyons", targetScore: 420, startSpeed: 5.1, accel: 0.0013, spawn: 50, boss: false, biome: "night" },
   { name: "Final Boss: Cactus King", targetScore: 480, startSpeed: 5.4, accel: 0.0014, spawn: 46, boss: true, biome: "night" },
-  { name: "Frozen Tundra", targetScore: 540, startSpeed: 5.6, accel: 0.00145, spawn: 44, boss: false, biome: "frost" },
-  { name: "Ice Ravine", targetScore: 600, startSpeed: 5.8, accel: 0.0015, spawn: 42, boss: false, biome: "frost" },
-  { name: "Glacier Pass", targetScore: 660, startSpeed: 6.0, accel: 0.00155, spawn: 40, boss: false, biome: "frost" },
-  { name: "Blizzard Peak", targetScore: 720, startSpeed: 6.2, accel: 0.0016, spawn: 38, boss: false, biome: "frost" },
-  { name: "Boss: Frost Titan", targetScore: 790, startSpeed: 6.3, accel: 0.00165, spawn: 36, boss: true, biome: "frost" },
+  { name: "Frozen Tundra", targetScore: 540, startSpeed: 5.6, accel: 0.00145, spawn: 44, boss: false, biome: "frost", slippery: true },
+  { name: "Ice Ravine", targetScore: 600, startSpeed: 5.8, accel: 0.0015, spawn: 42, boss: false, biome: "frost", slippery: true },
+  { name: "Glacier Pass", targetScore: 660, startSpeed: 6.0, accel: 0.00155, spawn: 40, boss: false, biome: "frost", slippery: true },
+  { name: "Blizzard Peak", targetScore: 720, startSpeed: 6.2, accel: 0.0016, spawn: 38, boss: false, biome: "frost", slippery: true },
+  { name: "Boss: Frost Titan", targetScore: 790, startSpeed: 6.3, accel: 0.00165, spawn: 36, boss: true, biome: "frost", slippery: true },
   { name: "Ember Wastes", targetScore: 860, startSpeed: 6.5, accel: 0.0017, spawn: 34, boss: false, biome: "ash" },
   { name: "Magma Fields", targetScore: 930, startSpeed: 6.7, accel: 0.00175, spawn: 32, boss: false, biome: "ash" },
   { name: "Ash Storm", targetScore: 1000, startSpeed: 6.9, accel: 0.0018, spawn: 30, boss: false, biome: "ash" },
@@ -76,6 +82,16 @@ const STAGES = [
   { name: "Crystal Winds", targetScore: 1860, startSpeed: 8.1, accel: 0.00235, spawn: 18, boss: false, biome: "sky", flying: true },
   { name: "Void Horizon", targetScore: 1960, startSpeed: 8.2, accel: 0.0024, spawn: 17, boss: false, biome: "void", flying: true },
   { name: "Final Boss: Sky Serpent", targetScore: 2100, startSpeed: 8.3, accel: 0.0025, spawn: 16, boss: true, biome: "void", flying: true },
+  { name: "Shallow Shores", targetScore: 2200, startSpeed: 8.4, accel: 0.00255, spawn: 15, boss: false, biome: "ocean", swimming: true },
+  { name: "Coral Gardens", targetScore: 2320, startSpeed: 8.5, accel: 0.0026, spawn: 14, boss: false, biome: "reef", swimming: true },
+  { name: "Tidal Run", targetScore: 2440, startSpeed: 8.55, accel: 0.00265, spawn: 14, boss: false, biome: "ocean", swimming: true },
+  { name: "Kelp Forest", targetScore: 2560, startSpeed: 8.6, accel: 0.0027, spawn: 13, boss: false, biome: "reef", swimming: true },
+  { name: "Boss: Kraken's Gate", targetScore: 2680, startSpeed: 8.65, accel: 0.00275, spawn: 13, boss: true, biome: "deep", swimming: true },
+  { name: "Sunken Ruins", targetScore: 2800, startSpeed: 8.7, accel: 0.0028, spawn: 12, boss: false, biome: "deep", swimming: true },
+  { name: "Glow Caverns", targetScore: 2920, startSpeed: 8.75, accel: 0.00285, spawn: 12, boss: false, biome: "abyss", swimming: true },
+  { name: "Riptide Pass", targetScore: 3040, startSpeed: 8.8, accel: 0.0029, spawn: 11, boss: false, biome: "ocean", swimming: true },
+  { name: "Mariana Sprint", targetScore: 3160, startSpeed: 8.85, accel: 0.00295, spawn: 11, boss: false, biome: "abyss", swimming: true },
+  { name: "Final Boss: Leviathan", targetScore: 3300, startSpeed: 8.9, accel: 0.00305, spawn: 10, boss: true, biome: "abyss", swimming: true },
 ];
 
 const ENDLESS_CONFIG = {
@@ -171,11 +187,43 @@ const BIOME_PALETTES = {
     line: "#4338ca",
     clouds: "rgba(196, 181, 253, 0.25)",
   },
+  ocean: {
+    sky: ["#0c4a6e", "#0284c7"],
+    ground: "#ca8a04",
+    hills: "#eab308",
+    dunes: "rgba(125, 211, 252, 0.22)",
+    line: "#0369a1",
+    clouds: "rgba(224, 242, 254, 0.35)",
+  },
+  reef: {
+    sky: ["#155e75", "#0891b2"],
+    ground: "#d97706",
+    hills: "#f59e0b",
+    dunes: "rgba(52, 211, 153, 0.2)",
+    line: "#0e7490",
+    clouds: "rgba(167, 243, 208, 0.3)",
+  },
+  deep: {
+    sky: ["#0f172a", "#1e3a8a"],
+    ground: "#475569",
+    hills: "#64748b",
+    dunes: "rgba(56, 189, 248, 0.16)",
+    line: "#334155",
+    clouds: "rgba(186, 230, 253, 0.2)",
+  },
+  abyss: {
+    sky: ["#020617", "#172554"],
+    ground: "#334155",
+    hills: "#475569",
+    dunes: "rgba(129, 140, 248, 0.18)",
+    line: "#1e293b",
+    clouds: "rgba(196, 181, 253, 0.22)",
+  },
 };
 
 /**
  * Post-game preview — flip on for local testing, off before release.
- * URL: ?postgame=N (stage 1–30), ?postgame=final, ?postgame=world2, ?postgame=endless
+ * URL: ?postgame=N (stage 1–40), ?postgame=final, ?postgame=world2, ?postgame=world4, ?postgame=endless
  */
 const GAME_CONFIG = {
   unlockPostGame: false,
@@ -215,6 +263,13 @@ if (STAGES.length > 20 && save.endlessUnlocked && save.unlockedStage >= 20) {
     localStorage.setItem(saveKey, JSON.stringify(save));
   }
 }
+if (STAGES.length > 30 && save.unlockedStage >= 30) {
+  save.unlockedStage = Math.max(save.unlockedStage, 31);
+  if (save.currentStage === 30) {
+    save.currentStage = 31;
+    localStorage.setItem(saveKey, JSON.stringify(save));
+  }
+}
 
 function resolvePostgameStage(postgameParam) {
   if (postgameParam === "endless") {
@@ -225,6 +280,9 @@ function resolvePostgameStage(postgameParam) {
   }
   if (postgameParam === "world2") {
     return 11;
+  }
+  if (postgameParam === "world4") {
+    return 31;
   }
   if (postgameParam === null || postgameParam === "") {
     return null;
@@ -310,7 +368,10 @@ let state = "menu";
 let reviveUsed = false;
 let sprinting = false;
 const EARLY_OBSTACLE_GRACE_FRAMES = 220;
+const world2IntroKey = "runner_rush_world2_intro_seen";
+const world4IntroKey = "runner_rush_world4_intro_seen";
 const musicPrefKey = "runner_rush_music_enabled";
+let activeWorldIntro = null;
 let musicEnabled = localStorage.getItem(musicPrefKey) !== "false";
 let musicUnlocked = false;
 
@@ -911,6 +972,84 @@ function currentStageConfig() {
   return STAGES[save.currentStage - 1];
 }
 
+function isFrostStage() {
+  return !endlessMode && currentStageConfig().slippery === true;
+}
+
+function isSwimmingStage() {
+  return !endlessMode && currentStageConfig().swimming === true;
+}
+
+function frostSlipStrength() {
+  if (!isFrostStage()) {
+    return 0;
+  }
+  return Math.min(1, 0.28 + (save.currentStage - 11) * 0.18);
+}
+
+function getPendingWorldIntro() {
+  if (endlessMode) {
+    return null;
+  }
+  if (save.currentStage === 11 && localStorage.getItem(world2IntroKey) !== "1") {
+    return 2;
+  }
+  if (save.currentStage === 31 && localStorage.getItem(world4IntroKey) !== "1") {
+    return 4;
+  }
+  return null;
+}
+
+function markWorldIntroSeen(worldId) {
+  if (worldId === 2) {
+    localStorage.setItem(world2IntroKey, "1");
+  }
+  if (worldId === 4) {
+    localStorage.setItem(world4IntroKey, "1");
+  }
+}
+
+function dismissWorldIntro() {
+  if (activeWorldIntro !== null) {
+    markWorldIntroSeen(activeWorldIntro);
+  }
+  activeWorldIntro = null;
+  setState("playing");
+  unlockMusicFromGesture();
+  startMusicPlayback();
+}
+
+function beginWorldIntroIfNeeded() {
+  const pending = getPendingWorldIntro();
+  if (pending === null) {
+    setState("playing");
+    return;
+  }
+  activeWorldIntro = pending;
+  setState("worldintro");
+}
+
+function resetPlayerPosition() {
+  if (isSwimmingStage()) {
+    player.y = WATER_TOP + (WATER_BOTTOM - WATER_TOP - player.h) * 0.42;
+    player.vy = 0;
+    player.grounded = false;
+  } else {
+    player.y = groundY - player.h;
+    player.vy = 0;
+    player.grounded = true;
+  }
+  player.sliding = false;
+  player.slideTimer = 0;
+  player.shieldTimer = 0;
+}
+
+function randomWaterY(minHeight) {
+  const top = WATER_TOP + 10;
+  const bottom = WATER_BOTTOM - minHeight - 10;
+  return top + Math.random() * Math.max(24, bottom - top);
+}
+
 function endlessRunScore() {
   return Math.max(0, Math.floor(score - stageStartScore));
 }
@@ -1019,14 +1158,18 @@ function setState(nextState) {
 
 function emitDust(x, y, burst) {
   const count = burst ? 10 : 4;
+  const snow = isFrostStage();
+  const bubble = isSwimmingStage();
   for (let i = 0; i < count; i += 1) {
     dustParticles.push({
       x: x + Math.random() * 14 - 7,
       y: y + Math.random() * 4 - 2,
       vx: (Math.random() - 0.5) * 1.8 - speed * 0.09,
-      vy: -Math.random() * (burst ? 1.7 : 0.9),
+      vy: bubble ? -0.6 - Math.random() * 1.4 : -Math.random() * (burst ? 1.7 : 0.9),
       life: burst ? 30 : 18,
       size: 2 + Math.random() * (burst ? 4 : 2),
+      snow,
+      bubble,
     });
   }
 }
@@ -1083,13 +1226,8 @@ function startRun() {
   coinTimer = 0;
   powerupTimer = 0;
   reviveUsed = false;
-  player.y = groundY - player.h;
-  player.vy = 0;
-  player.grounded = true;
-  player.sliding = false;
-  player.slideTimer = 0;
-  player.shieldTimer = 0;
-  setState("playing");
+  resetPlayerPosition();
+  beginWorldIntroIfNeeded();
   updateHud();
 }
 
@@ -1128,6 +1266,8 @@ function resetEverything() {
 
   Object.assign(save, defaultSave);
   endlessMode = false;
+  localStorage.removeItem(world2IntroKey);
+  localStorage.removeItem(world4IntroKey);
   persistSave();
 
   obstacles = [];
@@ -1147,12 +1287,7 @@ function resetEverything() {
   reviveUsed = false;
   sprinting = false;
 
-  player.y = groundY - player.h;
-  player.vy = 0;
-  player.grounded = true;
-  player.sliding = false;
-  player.slideTimer = 0;
-  player.shieldTimer = 0;
+  resetPlayerPosition();
 
   setState("menu");
   updateHud();
@@ -1166,6 +1301,7 @@ function revive() {
   reviveUsed = true;
   player.shieldTimer = 160;
   obstacles = obstacles.filter((obs) => obs.x > player.x + 45);
+  resetPlayerPosition();
   persistSave();
   setState("playing");
   updateHud();
@@ -1178,7 +1314,15 @@ function jump() {
     startRun();
     return;
   }
-  if (state !== "playing" || !player.grounded) {
+  if (state !== "playing") {
+    return;
+  }
+  if (isSwimmingStage()) {
+    player.vy = SWIM_UP_FORCE;
+    emitDust(player.x + player.w * 0.5, player.y + player.h * 0.55, true);
+    return;
+  }
+  if (!player.grounded) {
     return;
   }
   player.vy = currentJumpForce();
@@ -1186,11 +1330,22 @@ function jump() {
 }
 
 function slide() {
-  if (state !== "playing" || !player.grounded || player.sliding) {
+  if (state !== "playing") {
+    return;
+  }
+  if (isSwimmingStage()) {
+    player.vy = SWIM_DOWN_FORCE;
+    player.sliding = true;
+    player.slideTimer = 22;
+    emitDust(player.x + player.w * 0.5, player.y + 8, false);
+    return;
+  }
+  if (!player.grounded || player.sliding) {
     return;
   }
   player.sliding = true;
-  player.slideTimer = 30;
+  const frostBonus = isFrostStage() ? Math.floor(8 + frostSlipStrength() * 18) : 0;
+  player.slideTimer = 30 + frostBonus;
 }
 
 function tryBuyJumpUpgrade() {
@@ -1261,6 +1416,65 @@ function spawnFlyingObstacle(stageIndex) {
   });
 }
 
+function spawnAquaticObstacle(stageIndex) {
+  const roll = Math.random();
+  if (stageIndex >= 39 && roll < 0.18) {
+    const h = 24;
+    const baseY = randomWaterY(h + 20);
+    obstacles.push({
+      x: canvas.width + 20,
+      y: baseY,
+      baseY,
+      w: 52,
+      h,
+      type: "swim_leviathan",
+      aquatic: true,
+      phase: Math.random() * Math.PI * 2,
+    });
+    return;
+  }
+  if (roll < 0.26) {
+    const h = 30;
+    const baseY = randomWaterY(h + 12);
+    obstacles.push({
+      x: canvas.width + 20,
+      y: baseY,
+      baseY,
+      w: 34,
+      h,
+      type: "swim_jelly",
+      aquatic: true,
+      phase: Math.random() * Math.PI * 2,
+    });
+  } else if (roll < 0.52) {
+    const h = 48 + Math.floor(Math.random() * 36);
+    obstacles.push({
+      x: canvas.width + 20,
+      y: randomWaterY(h),
+      w: 24,
+      h,
+      type: "swim_kelp",
+    });
+  } else if (roll < 0.78) {
+    obstacles.push({
+      x: canvas.width + 20,
+      y: randomWaterY(36),
+      w: 36,
+      h: 36,
+      type: "swim_rock",
+    });
+  } else {
+    const h = 72 + Math.floor(Math.random() * 40);
+    obstacles.push({
+      x: canvas.width + 20,
+      y: WATER_TOP + 6,
+      w: 40,
+      h,
+      type: "swim_coral",
+    });
+  }
+}
+
 function flyingSpawnChance(stageIndex) {
   if (stageIndex < 21) {
     return 0;
@@ -1277,7 +1491,20 @@ function spawnObstacle() {
   const stageIndex = endlessMode ? STAGES.length + 1 : save.currentStage;
 
   if (stage.boss && roll < (endlessMode ? 0.28 : 0.2)) {
-    if (stage.flying) {
+    if (stage.swimming) {
+      const h = 42;
+      const baseY = randomWaterY(h + 16);
+      obstacles.push({
+        x: canvas.width + 20,
+        y: baseY,
+        baseY,
+        w: stageIndex >= 40 ? 60 : 52,
+        h,
+        type: stageIndex >= 40 ? "swim_leviathan" : "swim_boss",
+        aquatic: true,
+        phase: Math.random() * Math.PI * 2,
+      });
+    } else if (stage.flying) {
       obstacles.push({
         x: canvas.width + 20,
         y: groundY - 92,
@@ -1295,6 +1522,20 @@ function spawnObstacle() {
         w: 44,
         h: 80,
         type: "boss",
+      });
+    }
+    return;
+  }
+
+  if (stage.swimming) {
+    spawnAquaticObstacle(stageIndex);
+    if (stageIndex >= 34 && Math.random() < 0.22) {
+      obstacles.push({
+        x: canvas.width + 72,
+        y: randomWaterY(28),
+        w: 28,
+        h: 28,
+        type: "swim_rock",
       });
     }
     return;
@@ -1327,13 +1568,18 @@ function spawnObstacle() {
 }
 
 function spawnCoin() {
+  if (isSwimmingStage()) {
+    coins.push({ x: canvas.width + 12, y: randomWaterY(18), r: 9 });
+    return;
+  }
   const lane = Math.random();
   const coinY = lane < 0.34 ? groundY - 102 : lane < 0.68 ? groundY - 68 : groundY - 38;
   coins.push({ x: canvas.width + 12, y: coinY, r: 9 });
 }
 
 function spawnPowerup() {
-  powerups.push({ x: canvas.width + 20, y: groundY - 96, w: 22, h: 22, kind: "shield" });
+  const powerY = isSwimmingStage() ? randomWaterY(22) : groundY - 96;
+  powerups.push({ x: canvas.width + 20, y: powerY, w: 22, h: 22, kind: "shield" });
 }
 
 function rectHit(a, b) {
@@ -1364,6 +1610,11 @@ function registerStageClear() {
     stageStartScore = score;
     speed = Math.max(speed, currentStageConfig().startSpeed);
     updateHud();
+    const pendingIntro = getPendingWorldIntro();
+    if (pendingIntro !== null) {
+      activeWorldIntro = pendingIntro;
+      setState("worldintro");
+    }
     return;
   }
 
@@ -1386,15 +1637,38 @@ function update() {
   powerupTimer += 1;
 
   const wasGrounded = player.grounded;
-  player.vy += gravity;
-  player.y += player.vy;
-  if (player.y + player.h >= groundY) {
-    player.y = groundY - player.h;
-    player.vy = 0;
-    if (!wasGrounded) {
-      emitDust(player.x + player.w * 0.5, groundY, true);
+  if (isSwimmingStage()) {
+    player.vy += WATER_SINK;
+    player.vy *= WATER_DRAG;
+    player.y += player.vy;
+    if (player.y < WATER_TOP) {
+      player.y = WATER_TOP;
+      player.vy = Math.max(0, player.vy * 0.35);
     }
-    player.grounded = true;
+    if (player.y + player.h > WATER_BOTTOM) {
+      player.y = WATER_BOTTOM - player.h;
+      player.vy = Math.min(0, player.vy * 0.35);
+    }
+    player.grounded = false;
+  } else {
+    player.vy += gravity;
+    player.y += player.vy;
+    if (player.y + player.h >= groundY) {
+      player.y = groundY - player.h;
+      const landingImpact = Math.abs(player.vy);
+      player.vy = 0;
+      if (!wasGrounded) {
+        emitDust(player.x + player.w * 0.5, groundY, true);
+        if (isFrostStage() && landingImpact > 1.4) {
+          player.sliding = true;
+          player.slideTimer = Math.max(
+            player.slideTimer,
+            Math.floor(10 + frostSlipStrength() * 12),
+          );
+        }
+      }
+      player.grounded = true;
+    }
   }
 
   if (player.sliding) {
@@ -1431,7 +1705,9 @@ function update() {
     speed = Math.min(9.4, speed);
   }
   score += 0.17 + currentSpeed * 0.012;
-  if (player.grounded && !player.sliding && frame % 10 === 0) {
+  if (isSwimmingStage() && frame % 16 === 0) {
+    emitDust(player.x + 34, player.y + 18, false);
+  } else if (player.grounded && !player.sliding && frame % 10 === 0) {
     emitDust(player.x + 6, groundY, false);
   }
 
@@ -1446,6 +1722,10 @@ function update() {
   for (let i = obstacles.length - 1; i >= 0; i -= 1) {
     const obs = obstacles[i];
     obs.x -= currentSpeed;
+    if (obs.aquatic && obs.baseY !== undefined) {
+      const bob = obs.type === "swim_leviathan" ? 9 : obs.type === "swim_boss" ? 8 : 6;
+      obs.y = obs.baseY + Math.sin(frame * 0.08 + obs.phase) * bob;
+    }
     if (obs.flying && obs.baseY !== undefined) {
       const bob = obs.type === "fly_boss" ? 10 : obs.type === "fly_serpent" ? 8 : 7;
       obs.y = obs.baseY + Math.sin(frame * 0.07 + obs.phase) * bob;
@@ -1512,7 +1792,75 @@ function update() {
   updateHud();
 }
 
+function drawUnderwaterBackground() {
+  const palette = BIOME_PALETTES[currentStageConfig().biome] || BIOME_PALETTES.ocean;
+  const waterGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  waterGrad.addColorStop(0, palette.sky[0]);
+  waterGrad.addColorStop(0.45, palette.sky[1]);
+  waterGrad.addColorStop(1, palette.hills);
+  ctx.fillStyle = waterGrad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "rgba(224, 242, 254, 0.12)";
+  for (let i = 0; i < 5; i += 1) {
+    const rayX = (i * 210 + frame * 0.6) % (canvas.width + 120) - 60;
+    ctx.beginPath();
+    ctx.moveTo(rayX, WATER_TOP);
+    ctx.lineTo(rayX + 50, canvas.height);
+    ctx.lineTo(rayX + 18, canvas.height);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  ctx.fillStyle = palette.ground;
+  ctx.fillRect(0, WATER_BOTTOM, canvas.width, canvas.height - WATER_BOTTOM);
+
+  const sandOffset = (frame * 0.12) % (canvas.width + 180);
+  ctx.fillStyle = palette.dunes;
+  ctx.beginPath();
+  ctx.ellipse(canvas.width - sandOffset, WATER_BOTTOM + 8, 120, 16, 0, 0, Math.PI * 2);
+  ctx.ellipse(canvas.width - sandOffset + 150, WATER_BOTTOM + 10, 90, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = palette.line;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, WATER_BOTTOM);
+  ctx.lineTo(canvas.width, WATER_BOTTOM);
+  ctx.stroke();
+
+  ctx.fillStyle = "rgba(186, 230, 253, 0.35)";
+  ctx.fillRect(0, 0, canvas.width, WATER_TOP + 8);
+  ctx.strokeStyle = "rgba(224, 242, 254, 0.55)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let x = 0; x <= canvas.width; x += 18) {
+    const wave = Math.sin(frame * 0.08 + x * 0.06) * 4;
+    ctx.lineTo(x, WATER_TOP + wave);
+  }
+  ctx.stroke();
+}
+
+function drawWaterEffects() {
+  if (!isSwimmingStage()) {
+    return;
+  }
+  ctx.fillStyle = "rgba(224, 242, 254, 0.55)";
+  for (let i = 0; i < 24; i += 1) {
+    const bx = (i * 83 + frame * (0.25 + (i % 4) * 0.06)) % (canvas.width + 16) - 8;
+    const by = WATER_TOP + 20 + ((i * 59 + frame * 0.5) % (WATER_BOTTOM - WATER_TOP - 40));
+    ctx.beginPath();
+    ctx.arc(bx, by, i % 3 === 0 ? 2.2 : 1.3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
 function drawBackground() {
+  if (isSwimmingStage()) {
+    drawUnderwaterBackground();
+    return;
+  }
+
   const palette = BIOME_PALETTES[currentStageConfig().biome] || BIOME_PALETTES.grass;
   const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
   skyGradient.addColorStop(0, palette.sky[0]);
@@ -1577,9 +1925,46 @@ function drawBackground() {
   ctx.moveTo(0, groundY);
   ctx.lineTo(canvas.width, groundY);
   ctx.stroke();
+
+  if (currentStageConfig().biome === "frost") {
+    ctx.fillStyle = "rgba(255,255,255,0.12)";
+    ctx.fillRect(0, groundY - 28, canvas.width, 32);
+    ctx.strokeStyle = "rgba(186, 230, 253, 0.35)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 8; i += 1) {
+      const crackX = (i * 137 + frame * 0.08) % (canvas.width + 80) - 40;
+      ctx.beginPath();
+      ctx.moveTo(crackX, groundY + 4);
+      ctx.lineTo(crackX + 18, groundY + 10);
+      ctx.lineTo(crackX + 8, groundY + 18);
+      ctx.stroke();
+    }
+  }
+}
+
+function drawFrostEffects() {
+  if (currentStageConfig().biome !== "frost") {
+    return;
+  }
+
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  for (let i = 0; i < 40; i += 1) {
+    const drift = 0.35 + (i % 5) * 0.1;
+    const sx = (i * 71 + frame * drift) % (canvas.width + 24) - 12;
+    const sy = (i * 47 + frame * (0.55 + (i % 4) * 0.14)) % (groundY + 16);
+    const size = i % 4 === 0 ? 2.4 : 1.4;
+    ctx.beginPath();
+    ctx.arc(sx, sy, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 function drawPlayer() {
+  if (isSwimmingStage()) {
+    drawSwimmingPlayer();
+    return;
+  }
+
   const drawY = player.y + (player.sliding ? 18 : 0);
   const drawH = player.h - (player.sliding ? 18 : 0);
   const stride = Math.sin(frame * 0.45) * 4;
@@ -1635,6 +2020,50 @@ function drawPlayer() {
   ctx.fillRect(player.x + 36, drawY + 10, 2, 2);
   ctx.fillStyle = "#f8fafc";
   ctx.fillRect(player.x + 34, drawY + 14, 4, 1);
+}
+
+function drawSwimmingPlayer() {
+  const tuck = player.sliding ? 10 : 0;
+  const drawY = player.y + tuck;
+  const drawH = player.h - tuck;
+  const wiggle = Math.sin(frame * 0.28) * 5;
+  const catFur = player.shieldTimer > 0 ? "#6366f1" : "#9a7b5f";
+  const catFurDark = player.shieldTimer > 0 ? "#4f46e5" : "#7c624b";
+
+  ctx.fillStyle = catFur;
+  ctx.beginPath();
+  ctx.ellipse(player.x + 22, drawY + drawH * 0.58, 18, 13, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = catFurDark;
+  ctx.beginPath();
+  ctx.ellipse(player.x + 20, drawY + drawH * 0.6, 11, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = catFur;
+  ctx.beginPath();
+  ctx.ellipse(player.x + 36, drawY + 12, 10, 9, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = catFurDark;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(player.x + 4, drawY + 20);
+  ctx.quadraticCurveTo(
+    player.x - 8,
+    drawY + 14 + wiggle * 0.4,
+    player.x + 2,
+    drawY + 8 + wiggle * 0.55,
+  );
+  ctx.stroke();
+
+  ctx.fillStyle = catFurDark;
+  ctx.fillRect(player.x + 10, drawY + drawH - 10, 5, 8 + Math.max(0, wiggle * 0.2));
+  ctx.fillRect(player.x + 22, drawY + drawH - 10, 5, 8 - Math.max(0, wiggle * 0.2));
+
+  ctx.fillStyle = "#111827";
+  ctx.fillRect(player.x + 38, drawY + 11, 2, 2);
+  ctx.fillStyle = "#f8fafc";
+  ctx.fillRect(player.x + 36, drawY + 15, 4, 1);
 }
 
 function drawFlyingObstacle(obs) {
@@ -1720,10 +2149,184 @@ function drawFlyingObstacle(obs) {
   }
 }
 
+function drawAquaticObstacle(obs) {
+  const cx = obs.x + obs.w * 0.5;
+  const cy = obs.y + obs.h * 0.5;
+
+  if (obs.type === "swim_leviathan" || obs.type === "swim_boss") {
+    ctx.strokeStyle = obs.type === "swim_leviathan" ? "#38bdf8" : "#0ea5e9";
+    ctx.lineWidth = obs.type === "swim_leviathan" ? 9 : 7;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(obs.x, cy);
+    for (let i = 0; i <= 4; i += 1) {
+      const px = obs.x + (obs.w / 4) * i;
+      const wave = Math.sin(frame * 0.11 + obs.phase + i * 0.85) * (obs.type === "swim_leviathan" ? 9 : 7);
+      ctx.lineTo(px, cy + wave);
+    }
+    ctx.stroke();
+    ctx.fillStyle = "#bae6fd";
+    ctx.beginPath();
+    ctx.arc(obs.x + obs.w - 5, cy + Math.sin(frame * 0.11 + obs.phase + 3.4) * 7, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#111827";
+    ctx.fillRect(obs.x + obs.w - 7, cy + Math.sin(frame * 0.11 + obs.phase + 3.4) * 7 - 2, 2, 2);
+    return;
+  }
+
+  if (obs.type === "swim_jelly") {
+    const pulse = Math.sin(frame * 0.18 + obs.phase) * 3;
+    ctx.fillStyle = "rgba(244, 114, 182, 0.55)";
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, obs.w * 0.42, obs.h * 0.34 + pulse * 0.08, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(251, 207, 232, 0.85)";
+    ctx.lineWidth = 2;
+    for (let t = 0; t < 4; t += 1) {
+      const tx = obs.x + 6 + t * 7;
+      ctx.beginPath();
+      ctx.moveTo(tx, obs.y + obs.h - 4);
+      ctx.lineTo(tx + Math.sin(frame * 0.2 + obs.phase + t) * 2, obs.y + obs.h + 10);
+      ctx.stroke();
+    }
+    return;
+  }
+
+  if (obs.type === "swim_kelp") {
+    ctx.strokeStyle = "#15803d";
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    for (let k = 0; k < 3; k += 1) {
+      const kx = obs.x + 6 + k * 7;
+      ctx.beginPath();
+      ctx.moveTo(kx, obs.y + obs.h);
+      for (let s = 1; s <= 4; s += 1) {
+        const ky = obs.y + obs.h - (obs.h / 4) * s;
+        ctx.lineTo(kx + Math.sin(frame * 0.06 + obs.x * 0.01 + s + k) * 6, ky);
+      }
+      ctx.stroke();
+    }
+    return;
+  }
+
+  if (obs.type === "swim_coral") {
+    const grad = ctx.createLinearGradient(obs.x, obs.y, obs.x + obs.w, obs.y + obs.h);
+    grad.addColorStop(0, "#fb7185");
+    grad.addColorStop(0.5, "#f97316");
+    grad.addColorStop(1, "#db2777");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(obs.x + 4, obs.y + obs.h);
+    ctx.lineTo(obs.x + obs.w * 0.5, obs.y + 8);
+    ctx.lineTo(obs.x + obs.w - 4, obs.y + obs.h);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "rgba(254, 215, 170, 0.55)";
+    ctx.beginPath();
+    ctx.arc(obs.x + obs.w * 0.35, obs.y + obs.h * 0.55, 5, 0, Math.PI * 2);
+    ctx.arc(obs.x + obs.w * 0.68, obs.y + obs.h * 0.42, 4, 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+
+  ctx.fillStyle = "#64748b";
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, obs.w * 0.48, obs.h * 0.42, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#94a3b8";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(obs.x + 5, obs.y + 8);
+  ctx.lineTo(obs.x + obs.w - 6, obs.y + obs.h - 8);
+  ctx.stroke();
+}
+
+function drawFrostObstacle(obs) {
+  const isTall = obs.type === "wall" || obs.type === "boss";
+  const isBoss = obs.type === "boss";
+
+  ctx.fillStyle = "rgba(15, 23, 42, 0.16)";
+  ctx.beginPath();
+  ctx.ellipse(obs.x + obs.w * 0.5, groundY + 2, obs.w * 0.62, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (obs.type === "high") {
+    const icicleCount = 3;
+    for (let i = 0; i < icicleCount; i += 1) {
+      const ix = obs.x + 4 + i * (obs.w / icicleCount);
+      const iw = Math.max(6, obs.w / icicleCount - 3);
+      const ih = obs.h + (i === 1 ? 6 : 0);
+      const grad = ctx.createLinearGradient(ix, obs.y, ix, obs.y + ih);
+      grad.addColorStop(0, "#e0f2fe");
+      grad.addColorStop(0.55, "#7dd3fc");
+      grad.addColorStop(1, "#38bdf8");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(ix, obs.y);
+      ctx.lineTo(ix + iw, obs.y);
+      ctx.lineTo(ix + iw * 0.5, obs.y + ih);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "rgba(186, 230, 253, 0.65)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    return;
+  }
+
+  const bodyGrad = ctx.createLinearGradient(obs.x, obs.y, obs.x, obs.y + obs.h);
+  if (isBoss) {
+    bodyGrad.addColorStop(0, "#dbeafe");
+    bodyGrad.addColorStop(0.5, "#93c5fd");
+    bodyGrad.addColorStop(1, "#64748b");
+  } else if (isTall) {
+    bodyGrad.addColorStop(0, "#f8fafc");
+    bodyGrad.addColorStop(0.45, "#cbd5e1");
+    bodyGrad.addColorStop(1, "#94a3b8");
+  } else {
+    bodyGrad.addColorStop(0, "#e2e8f0");
+    bodyGrad.addColorStop(1, "#94a3b8");
+  }
+  ctx.fillStyle = bodyGrad;
+  if (isTall) {
+    ctx.beginPath();
+    ctx.ellipse(obs.x + obs.w * 0.5, obs.y + obs.h * 0.55, obs.w * 0.52, obs.h * 0.48, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+  }
+
+  ctx.strokeStyle = "rgba(186, 230, 253, 0.55)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(obs.x + 4, obs.y + 4);
+  ctx.lineTo(obs.x + obs.w * 0.55, obs.y + obs.h * 0.35);
+  ctx.lineTo(obs.x + obs.w - 5, obs.y + obs.h - 4);
+  ctx.stroke();
+
+  if (isBoss) {
+    ctx.fillStyle = "#1e293b";
+    ctx.fillRect(obs.x + obs.w * 0.35, obs.y + 14, 5, 5);
+    ctx.fillRect(obs.x + obs.w * 0.6, obs.y + 14, 5, 5);
+    ctx.fillStyle = "#bae6fd";
+    ctx.fillRect(obs.x + obs.w * 0.28, obs.y + 28, obs.w * 0.44, 8);
+  }
+}
+
 function drawObstacles() {
+  const frost = currentStageConfig().biome === "frost";
   obstacles.forEach((obs) => {
+    if (obs.aquatic) {
+      drawAquaticObstacle(obs);
+      return;
+    }
     if (obs.flying) {
       drawFlyingObstacle(obs);
+      return;
+    }
+
+    if (frost) {
+      drawFrostObstacle(obs);
       return;
     }
 
@@ -1796,10 +2399,24 @@ function drawPowerups() {
 function drawDustParticles() {
   dustParticles.forEach((p) => {
     const alpha = Math.max(0, p.life / 30);
-    ctx.fillStyle = `rgba(120, 97, 67, ${alpha * 0.45})`;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    ctx.fill();
+    if (p.snow) {
+      ctx.fillStyle = `rgba(224, 242, 254, ${alpha * 0.75})`;
+    } else if (p.bubble) {
+      ctx.strokeStyle = `rgba(224, 242, 254, ${alpha * 0.7})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = `rgba(186, 230, 253, ${alpha * 0.35})`;
+      ctx.fill();
+    } else {
+      ctx.fillStyle = `rgba(120, 97, 67, ${alpha * 0.45})`;
+    }
+    if (!p.bubble) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
   });
 }
 
@@ -1812,7 +2429,33 @@ function drawOverlay() {
 
   ctx.fillStyle = "#f8fafc";
   ctx.textAlign = "center";
-  if (state === "menu") {
+  if (state === "worldintro") {
+    ctx.font = `14px ${FONT_TITLE}`;
+    if (activeWorldIntro === 4) {
+      ctx.fillStyle = "#7dd3fc";
+      ctx.fillText("World 4", canvas.width / 2, canvas.height / 2 - 72);
+      ctx.font = `24px ${FONT_TITLE}`;
+      ctx.fillStyle = "#f8fafc";
+      ctx.fillText("Ocean Depths", canvas.width / 2, canvas.height / 2 - 36);
+      ctx.font = `16px ${FONT_UI}`;
+      ctx.fillStyle = "#cbd5e1";
+      ctx.fillText("Tap top to swim up, bottom to dive.", canvas.width / 2, canvas.height / 2 + 4);
+      ctx.fillText("Dodge coral, kelp, and sea creatures.", canvas.width / 2, canvas.height / 2 + 30);
+      ctx.fillStyle = "#38bdf8";
+    } else {
+      ctx.fillStyle = "#bae6fd";
+      ctx.fillText("World 2", canvas.width / 2, canvas.height / 2 - 72);
+      ctx.font = `24px ${FONT_TITLE}`;
+      ctx.fillStyle = "#f8fafc";
+      ctx.fillText("Frozen Lands", canvas.width / 2, canvas.height / 2 - 36);
+      ctx.font = `16px ${FONT_UI}`;
+      ctx.fillStyle = "#cbd5e1";
+      ctx.fillText("Ice makes landings slippery.", canvas.width / 2, canvas.height / 2 + 4);
+      ctx.fillText("Slides last longer — time your jumps.", canvas.width / 2, canvas.height / 2 + 30);
+      ctx.fillStyle = "#7dd3fc";
+    }
+    ctx.fillText("Tap to continue", canvas.width / 2, canvas.height / 2 + 68);
+  } else if (state === "menu") {
     ctx.font = `24px ${FONT_TITLE}`;
     ctx.fillText("Runner Rush", canvas.width / 2, canvas.height / 2 - 36);
     ctx.font = `18px ${FONT_UI}`;
@@ -1850,6 +2493,8 @@ function drawOverlay() {
 function loop() {
   update();
   drawBackground();
+  drawFrostEffects();
+  drawWaterEffects();
   drawObstacles();
   drawCoins();
   drawPowerups();
@@ -1867,6 +2512,10 @@ window.addEventListener("keydown", (event) => {
   }
   if (event.code === "Space" || event.code === "ArrowUp") {
     event.preventDefault();
+    if (state === "worldintro") {
+      dismissWorldIntro();
+      return;
+    }
     if (state === "gameover") {
       restart();
       return;
@@ -1897,6 +2546,10 @@ window.addEventListener("keyup", (event) => {
 
 function handleCanvasPointer(offsetY) {
   unlockMusicFromGesture();
+  if (state === "worldintro") {
+    dismissWorldIntro();
+    return;
+  }
   if (state === "menu") {
     endlessMode = false;
     startRun();
