@@ -1124,6 +1124,72 @@ function closeGameMenu() {
   menuToggleBtn?.setAttribute("aria-expanded", "false");
 }
 
+function getMenuScrollEl() {
+  if (document.documentElement.classList.contains("force-landscape-active")) {
+    return gameMenu?.querySelector(".game-menu-scroll") ?? null;
+  }
+  return gameMenu;
+}
+
+function setupAndroidMenuScroll() {
+  if (!isAndroid() || !gameMenu) {
+    return;
+  }
+
+  let tracking = false;
+  let startX = 0;
+  let startY = 0;
+  let startScrollTop = 0;
+
+  gameMenu.addEventListener(
+    "touchstart",
+    (event) => {
+      if (!gameMenu.classList.contains("open")) {
+        tracking = false;
+        return;
+      }
+      const scroller = getMenuScrollEl();
+      if (!scroller || event.touches.length !== 1 || !scroller.contains(event.target)) {
+        tracking = false;
+        return;
+      }
+      tracking = true;
+      startX = event.touches[0].clientX;
+      startY = event.touches[0].clientY;
+      startScrollTop = scroller.scrollTop;
+    },
+    { passive: true },
+  );
+
+  gameMenu.addEventListener(
+    "touchmove",
+    (event) => {
+      if (!tracking || event.touches.length !== 1) {
+        return;
+      }
+      const scroller = getMenuScrollEl();
+      if (!scroller) {
+        return;
+      }
+      const deltaX = event.touches[0].clientX - startX;
+      const deltaY = event.touches[0].clientY - startY;
+      const forceLandscape = document.documentElement.classList.contains("force-landscape-active");
+      const delta = forceLandscape ? -deltaX : startY - event.touches[0].clientY;
+      if (Math.abs(forceLandscape ? deltaX : deltaY) > 6) {
+        event.preventDefault();
+      }
+      scroller.scrollTop = startScrollTop + delta;
+    },
+    { passive: false },
+  );
+
+  const stopTracking = () => {
+    tracking = false;
+  };
+  gameMenu.addEventListener("touchend", stopTracking, { passive: true });
+  gameMenu.addEventListener("touchcancel", stopTracking, { passive: true });
+}
+
 function toggleGameMenu() {
   if (gameMenu?.classList.contains("open")) {
     closeGameMenu();
@@ -4487,6 +4553,7 @@ menuToggleBtn?.addEventListener("pointerdown", (event) => {
 });
 menuCloseBtn?.addEventListener("click", closeGameMenu);
 menuBackdrop?.addEventListener("click", closeGameMenu);
+setupAndroidMenuScroll();
 if (fullscreenBtn) {
   fullscreenBtn.addEventListener("click", (event) => {
     event.preventDefault();
@@ -4525,10 +4592,6 @@ document.addEventListener("visibilitychange", () => {
   }
   sprinting = false;
 });
-
-if (isAndroid()) {
-  document.documentElement.classList.add("is-android");
-}
 
 applyMusicSettings();
 updateMusicButton();

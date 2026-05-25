@@ -356,7 +356,7 @@ html.force-landscape-active .game-menu-scroll {
   overflow-y: scroll;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  touch-action: auto;
+  touch-action: pan-x;
 }
 
 html.force-landscape-active .game-menu-nav,
@@ -389,66 +389,8 @@ html.force-landscape-active .game-menu-header {
   background: #0f172a;
 }
 
-/* Android: keep menu in portrait coords — overflow scroll breaks inside rotate(90deg) */
-html.is-android.force-landscape-active .menu-backdrop:not([hidden]) {
-  inset: 0;
-  width: auto;
-  height: auto;
-  transform: none;
-}
-
-html.is-android.force-landscape-active .game-menu {
-  top: auto;
-  left: 50%;
-  right: auto;
-  bottom: 0;
-  width: min(100%, 420px);
-  height: auto;
-  max-height: min(85dvh, 640px);
-  padding:
-    0
-    max(16px, var(--safe-right))
-    max(16px, var(--safe-bottom))
-    max(16px, var(--safe-left));
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
-  background: #0f172a;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  border-bottom: 0;
-  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.45);
-  border-radius: 20px 20px 0 0;
-  display: block;
-  flex-direction: unset;
-  justify-content: unset;
-  align-items: unset;
-  transform: translate(-50%, 100%);
-  transform-origin: center bottom;
-}
-
-html.is-android.force-landscape-active .game-menu.open {
-  transform: translate(-50%, 0);
-}
-
-html.is-android.force-landscape-active .game-menu-orient,
-html.is-android.force-landscape-active .game-menu-scroll {
-  display: contents;
-}
-
-html.is-android.force-landscape-active .game-menu-header {
-  position: sticky;
-  top: 0;
-  flex-shrink: unset;
-}
-
-html.is-android.force-landscape-active .game-menu-hint {
-  display: block;
-}
-
-html.is-android.menu-open .menu-item {
-  touch-action: pan-y;
+html.menu-open.force-landscape-active .menu-item {
+  touch-action: pan-x;
 }
 
 .game-menu-header {
