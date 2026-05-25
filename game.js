@@ -52,6 +52,8 @@ const gravity = 0.84;
 const baseJumpForce = -14.8;
 
 const STAGES_PER_WORLD = 8;
+const CAMPAIGN_MAX_SPEED = 6.0;
+const ENDLESS_MAX_SPEED = 9.4;
 const WORLD2_START = STAGES_PER_WORLD + 1;
 const WORLD3_START = STAGES_PER_WORLD * 2 + 1;
 const WORLD4_START = STAGES_PER_WORLD * 3 + 1;
@@ -127,24 +129,26 @@ const ENDLESS_CONFIG = {
   endless: true,
 };
 
+function stagePositionInWorld(stageIndex = save.currentStage) {
+  return ((stageIndex - 1) % STAGES_PER_WORLD) + 1;
+}
+
+function baselineStageForPosition(stageIndex = save.currentStage) {
+  return STAGES[stagePositionInWorld(stageIndex) - 1] ?? STAGES[0];
+}
+
 function stageTargetScore(stageIndex = save.currentStage) {
   if (endlessMode) {
     return ENDLESS_CONFIG.targetScore;
   }
-  const stage = STAGES[stageIndex - 1];
-  if (!stage) {
-    return 0;
+  return baselineStageForPosition(stageIndex).targetScore ?? 0;
+}
+
+function clampCampaignSpeed(value) {
+  if (endlessMode) {
+    return value;
   }
-  if (stageIndex >= 33) {
-    return Math.floor(stage.targetScore * 0.82);
-  }
-  if (stageIndex >= 25) {
-    return Math.floor(stage.targetScore * 0.88);
-  }
-  if (stageIndex >= 17) {
-    return Math.floor(stage.targetScore * 0.92);
-  }
-  return stage.targetScore;
+  return Math.min(CAMPAIGN_MAX_SPEED, value);
 }
 
 const BIOME_PALETTES = {
@@ -294,14 +298,42 @@ const BIOME_PALETTES = {
   },
 };
 
-// World 1 uses a slow color arc instead of snapping per-stage biomes.
-const WORLD1_COLOR_KEYFRAMES = [
-  { t: 0, biome: "grass" },
-  { t: 0.3, biome: "desert" },
-  { t: 0.55, biome: "dusk" },
-  { t: 0.78, biome: "storm" },
-  { t: 1, biome: "night" },
-];
+// Each world uses a slow color arc across its eight stages instead of snapping per stage.
+const WORLD_COLOR_KEYFRAMES = {
+  1: [
+    { t: 0, biome: "grass" },
+    { t: 0.3, biome: "desert" },
+    { t: 0.55, biome: "dusk" },
+    { t: 0.78, biome: "storm" },
+    { t: 1, biome: "night" },
+  ],
+  2: [
+    { t: 0, biome: "ocean" },
+    { t: 0.35, biome: "reef" },
+    { t: 0.62, biome: "deep" },
+    { t: 1, biome: "abyss" },
+  ],
+  3: [
+    { t: 0, biome: "frost" },
+    { t: 0.55, biome: "ash" },
+    { t: 1, biome: "ash" },
+  ],
+  4: [
+    { t: 0, biome: "sky" },
+    { t: 0.3, biome: "storm" },
+    { t: 0.58, biome: "aurora" },
+    { t: 1, biome: "void" },
+  ],
+  5: [
+    { t: 0, biome: "lava" },
+    { t: 0.28, biome: "volcanic" },
+    { t: 0.48, biome: "ember" },
+    { t: 0.72, biome: "inferno" },
+    { t: 1, biome: "inferno" },
+  ],
+};
+
+const STAR_BIOMES = new Set(["night", "storm", "void", "abyss", "deep"]);
 
 function clamp01(value) {
   return Math.max(0, Math.min(1, value));
@@ -373,17 +405,61 @@ function paletteForBiome(biome) {
   return BIOME_PALETTES[biome] || BIOME_PALETTES.grass;
 }
 
-function paletteAtWorld1Progress(progress) {
+function paletteAtKeyframeProgress(keyframes, progress) {
   const p = clamp01(progress);
   let index = 0;
-  while (index < WORLD1_COLOR_KEYFRAMES.length - 2 && p > WORLD1_COLOR_KEYFRAMES[index + 1].t) {
+  while (index < keyframes.length - 2 && p > keyframes[index + 1].t) {
     index += 1;
   }
-  const start = WORLD1_COLOR_KEYFRAMES[index];
-  const end = WORLD1_COLOR_KEYFRAMES[index + 1];
+  const start = keyframes[index];
+  const end = keyframes[index + 1];
   const span = end.t - start.t || 1;
   const localT = smoothstep((p - start.t) / span);
   return lerpPalette(paletteForBiome(start.biome), paletteForBiome(end.biome), localT);
+}
+
+function worldIdForStage(stageIndex = save.currentStage) {
+  if (endlessMode) {
+    return 5;
+  }
+  return Math.min(5, Math.floor((stageIndex - 1) / STAGES_PER_WORLD) + 1);
+}
+
+function worldColorKeyframes(worldId = worldIdForStage()) {
+  return WORLD_COLOR_KEYFRAMES[worldId] || WORLD_COLOR_KEYFRAMES[1];
+}
+
+function worldOverallProgress(stageIndex = save.currentStage) {
+  if (endlessMode) {
+    return 0;
+  }
+  const positionInWorld = stagePositionInWorld(stageIndex);
+  if (state === "playing" && stageIndex === save.currentStage) {
+    const target = stageTargetScore(stageIndex);
+    const stageT = target > 0 ? clamp01((score - stageStartScore) / target) : 0;
+    return clamp01((positionInWorld - 1 + stageT) / STAGES_PER_WORLD);
+  }
+  return clamp01((positionInWorld - 1) / STAGES_PER_WORLD);
+}
+
+function paletteAtWorldProgress(worldId, progress) {
+  return paletteAtKeyframeProgress(worldColorKeyframes(worldId), progress);
+}
+
+function worldStarIntensity(progress, keyframes = worldColorKeyframes()) {
+  const endBiome = keyframes[keyframes.length - 1]?.biome;
+  if (!STAR_BIOMES.has(endBiome)) {
+    return 0;
+  }
+  let darkStart = 0.58;
+  for (let i = 0; i < keyframes.length; i += 1) {
+    if (STAR_BIOMES.has(keyframes[i].biome)) {
+      darkStart = keyframes[i].t;
+      break;
+    }
+  }
+  const span = Math.max(0.01, 1 - darkStart);
+  return smoothstep((progress - darkStart) / span);
 }
 
 /**
@@ -655,15 +731,12 @@ let state = "menu";
 let reviveUsed = false;
 let sprinting = false;
 const EARLY_OBSTACLE_GRACE_FRAMES = 220;
-const HEAT_PULSE_WARN_FRAMES = 78;
 const REVIVE_COIN_COST = 40;
 const SCORE_BASE_PER_FRAME = 0.2;
 const SCORE_SPEED_FACTOR = 0.013;
 const STAGE_CLEAR_SHIELD_FRAMES = 120;
 const musicPrefKey = "runner_rush_music_enabled";
 let activeWorldIntro = null;
-let heatPulseTimer = 0;
-let heatPulseWarning = 0;
 const OVERLAY_READ_MS = 750;
 let overlayEpoch = 0;
 let overlayShownAt = 0;
@@ -1567,40 +1640,55 @@ function currentStageConfig() {
   if (endlessMode) {
     return ENDLESS_CONFIG;
   }
-  return STAGES[save.currentStage - 1];
+  const stage = STAGES[save.currentStage - 1];
+  if (!stage) {
+    return STAGES[0];
+  }
+  const pace = baselineStageForPosition(save.currentStage);
+  return {
+    ...stage,
+    startSpeed: pace.startSpeed,
+    accel: pace.accel,
+    spawn: pace.spawn,
+  };
 }
 
 function isFrostStage() {
   return !endlessMode && currentStageConfig().slippery === true;
 }
 
-function isWorld1Stage() {
-  return !endlessMode && save.currentStage >= 1 && save.currentStage < WORLD2_START;
-}
-
-function world1OverallProgress() {
-  if (!isWorld1Stage()) {
-    return 0;
-  }
-  const stageSpan = WORLD2_START - 1;
-  if (state === "playing") {
-    const target = stageTargetScore();
-    const stageT =
-      target > 0 ? clamp01((score - stageStartScore) / target) : 0;
-    return clamp01((save.currentStage - 1 + stageT) / stageSpan);
-  }
-  return clamp01((save.currentStage - 1) / stageSpan);
+function isWorldStage(worldId) {
+  return !endlessMode && worldIdForStage() === worldId;
 }
 
 function getActivePalette() {
-  if (isWorld1Stage()) {
-    return paletteAtWorld1Progress(world1OverallProgress());
+  if (endlessMode) {
+    return paletteForBiome(ENDLESS_CONFIG.biome);
   }
-  return paletteForBiome(currentStageConfig().biome);
+  const worldId = worldIdForStage();
+  return paletteAtWorldProgress(worldId, worldOverallProgress());
 }
 
-function world1StarIntensity() {
-  return smoothstep((world1OverallProgress() - 0.58) / 0.34);
+function world3FrostGlowIntensity() {
+  if (!isWorldStage(3)) {
+    return isPureFrostStage() ? 1 : 0;
+  }
+  return 1 - smoothstep((worldOverallProgress() - 0.4) / 0.22);
+}
+
+function world3ThawSteamIntensity() {
+  if (!isWorldStage(3)) {
+    return isThawStage() ? 1 : 0;
+  }
+  return smoothstep((worldOverallProgress() - 0.45) / 0.25);
+}
+
+function world4SkyExtrasIntensity() {
+  if (!isWorldStage(4)) {
+    const biome = currentStageConfig().biome;
+    return biome === "aurora" || biome === "void" ? 1 : 0;
+  }
+  return smoothstep((worldOverallProgress() - 0.45) / 0.55);
 }
 
 function isWorld3Stage() {
@@ -1627,43 +1715,6 @@ function isVolcanicStage() {
   return !endlessMode && currentStageConfig().volcanic === true;
 }
 
-function heatPulseInterval() {
-  return Math.max(210, 370 - (save.currentStage - WORLD5_START) * 15);
-}
-
-function resetHeatPulse() {
-  heatPulseTimer = isVolcanicStage() ? heatPulseInterval() : 0;
-  heatPulseWarning = 0;
-}
-
-function updateHeatPulse() {
-  if (!isVolcanicStage()) {
-    return;
-  }
-  if (heatPulseWarning > 0) {
-    heatPulseWarning -= 1;
-    if (heatPulseWarning === 0) {
-      const caughtInSurge =
-        player.grounded && !player.sliding && player.y + player.h >= groundY - 6;
-      if (caughtInSurge) {
-        if (player.shieldTimer > 0) {
-          player.shieldTimer = 0;
-          emitDust(player.x + player.w * 0.5, groundY - 4, true);
-        } else {
-          registerGameOver();
-          return;
-        }
-      }
-      heatPulseTimer = heatPulseInterval();
-    }
-    return;
-  }
-  heatPulseTimer -= 1;
-  if (heatPulseTimer <= 0) {
-    heatPulseWarning = HEAT_PULSE_WARN_FRAMES;
-  }
-}
-
 function applyStageWorldTransition(prevStage) {
   const nextStage = currentStageConfig();
   const modeChanged =
@@ -1674,9 +1725,8 @@ function applyStageWorldTransition(prevStage) {
   if (!modeChanged) {
     return;
   }
-  obstacles = obstacles.filter((obs) => obs.x <= player.x + 36);
+  obstacles = [];
   resetPlayerPosition();
-  resetHeatPulse();
 }
 
 function frostSlipStrength() {
@@ -1753,10 +1803,7 @@ function dismissWorldIntro() {
     startRun();
     return;
   }
-  setState("playing");
-  syncWorldAudioProfile(true);
-  unlockMusicFromGesture();
-  updateHud();
+  advanceToNextStage();
 }
 
 function beginWorldIntroIfNeeded() {
@@ -2067,14 +2114,13 @@ function startRun(options = {}) {
   stageStartScore = 0;
   rewardCheckpointScore = 0;
   rewardCheckpointCoins = 0;
-  speed = stage.startSpeed;
+  speed = clampCampaignSpeed(stage.startSpeed);
   frame = 0;
   obstacleTimer = -140;
   coinTimer = 0;
   powerupTimer = 0;
   reviveUsed = false;
   resetPlayerPosition();
-  resetHeatPulse();
   if (options.continueAfterClear) {
     player.shieldTimer = STAGE_CLEAR_SHIELD_FRAMES;
   }
@@ -2086,9 +2132,13 @@ function startRun(options = {}) {
 function advanceToNextStage() {
   const stage = currentStageConfig();
   stageStartScore = score;
-  speed = Math.max(speed, stage.startSpeed);
+  if (!endlessMode && WORLD_INTRO_BY_ENTRY_STAGE[save.currentStage]) {
+    speed = stage.startSpeed;
+  } else {
+    speed = Math.max(speed, stage.startSpeed);
+  }
+  speed = clampCampaignSpeed(speed);
   player.shieldTimer = Math.max(player.shieldTimer, STAGE_CLEAR_SHIELD_FRAMES);
-  resetHeatPulse();
   syncWorldAudioProfile(true);
   setState("playing");
   unlockMusicFromGesture();
@@ -2149,7 +2199,7 @@ function resetEverything() {
   stageStartScore = 0;
   rewardCheckpointScore = 0;
   rewardCheckpointCoins = 0;
-  speed = currentStageConfig().startSpeed;
+  speed = clampCampaignSpeed(currentStageConfig().startSpeed);
   frame = 0;
   obstacleTimer = 0;
   coinTimer = 0;
@@ -2580,6 +2630,20 @@ function rectHit(a, b) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
+function obstacleHitbox(obs) {
+  if (obs.type === "fire_geyser") {
+    return { x: obs.x + 5, y: obs.y + 4, w: obs.w - 10, h: obs.h - 22 };
+  }
+  if (obs.type === "fire_ember") {
+    const inset = Math.max(5, Math.floor(obs.w * 0.16));
+    return { x: obs.x + inset, y: obs.y + inset, w: obs.w - inset * 2, h: obs.h - inset * 2 };
+  }
+  if (obs.type === "fire_rock") {
+    return { x: obs.x + 5, y: obs.y + 5, w: obs.w - 10, h: obs.h - 10 };
+  }
+  return { x: obs.x, y: obs.y, w: obs.w, h: obs.h };
+}
+
 function registerGameOver() {
   if (endlessMode) {
     const runScore = endlessRunScore();
@@ -2680,7 +2744,6 @@ function update() {
     player.shieldTimer -= 1;
   }
 
-  updateHeatPulse();
   if (state !== "playing") {
     return;
   }
@@ -2707,7 +2770,9 @@ function update() {
 
   speed += stage.accel;
   if (endlessMode) {
-    speed = Math.min(9.4, speed);
+    speed = Math.min(ENDLESS_MAX_SPEED, speed);
+  } else {
+    speed = Math.min(CAMPAIGN_MAX_SPEED, speed);
   }
   score += SCORE_BASE_PER_FRAME + currentSpeed * SCORE_SPEED_FACTOR;
   if (isVolcanicStage() && frame % 12 === 0) {
@@ -2747,7 +2812,7 @@ function update() {
       obstacles.splice(i, 1);
       continue;
     }
-    if (rectHit(hitbox, obs)) {
+    if (rectHit(hitbox, obstacleHitbox(obs))) {
       if (player.shieldTimer > 0) {
         player.shieldTimer = 0;
         obstacles.splice(i, 1);
@@ -2947,7 +3012,7 @@ function drawSkyAmbience() {
 }
 
 function drawUnderwaterBackground() {
-  const palette = BIOME_PALETTES[currentStageConfig().biome] || BIOME_PALETTES.ocean;
+  const palette = getActivePalette();
   const waterGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
   waterGrad.addColorStop(0, palette.sky[0]);
   waterGrad.addColorStop(0.45, palette.sky[1]);
@@ -3017,17 +3082,19 @@ function drawBackground() {
 
   const palette = getActivePalette();
   const biome = currentStageConfig().biome;
+  const worldProgress = worldOverallProgress();
+  const worldKeyframes = worldColorKeyframes();
   const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
   skyGradient.addColorStop(0, palette.sky[0]);
   skyGradient.addColorStop(1, palette.sky[1]);
   ctx.fillStyle = skyGradient;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const starIntensity = isWorld1Stage()
-    ? world1StarIntensity()
-    : biome === "night" || biome === "storm"
+  const starIntensity = endlessMode
+    ? biome === "night" || biome === "storm"
       ? 1
-      : 0;
+      : 0
+    : worldStarIntensity(worldProgress, worldKeyframes);
   if (starIntensity > 0.02) {
     ctx.fillStyle = `rgba(255,255,255,${(0.85 * starIntensity).toFixed(3)})`;
     for (let i = 0; i < 24; i += 1) {
@@ -3037,38 +3104,48 @@ function drawBackground() {
     }
   }
 
-  if (biome === "aurora" || biome === "void") {
-    ctx.fillStyle = "rgba(255,255,255,0.85)";
+  const skyExtrasIntensity = world4SkyExtrasIntensity();
+  if (skyExtrasIntensity > 0.02) {
+    ctx.fillStyle = `rgba(255,255,255,${(0.85 * skyExtrasIntensity).toFixed(3)})`;
     for (let i = 0; i < 18; i += 1) {
       const sx = (i * 97 + frame * 0.02) % canvas.width;
       const sy = 18 + (i * 41) % 100;
       ctx.fillRect(sx, sy, 2, 2);
     }
-    if (currentStageConfig().biome === "aurora") {
-      const auroraGrad = ctx.createLinearGradient(0, 40, canvas.width, 160);
-      auroraGrad.addColorStop(0, "rgba(52, 211, 153, 0)");
-      auroraGrad.addColorStop(0.45, "rgba(52, 211, 153, 0.18)");
-      auroraGrad.addColorStop(0.7, "rgba(167, 139, 250, 0.16)");
-      auroraGrad.addColorStop(1, "rgba(52, 211, 153, 0)");
-      ctx.fillStyle = auroraGrad;
-      ctx.fillRect(0, 30, canvas.width, 140);
+    if (skyExtrasIntensity > 0.35) {
+      const auroraStrength = isWorldStage(4)
+        ? smoothstep((worldProgress - 0.52) / 0.28)
+        : biome === "aurora"
+          ? 1
+          : 0;
+      if (auroraStrength > 0.02) {
+        const auroraGrad = ctx.createLinearGradient(0, 40, canvas.width, 160);
+        auroraGrad.addColorStop(0, "rgba(52, 211, 153, 0)");
+        auroraGrad.addColorStop(0.45, `rgba(52, 211, 153, ${(0.18 * auroraStrength).toFixed(3)})`);
+        auroraGrad.addColorStop(0.7, `rgba(167, 139, 250, ${(0.16 * auroraStrength).toFixed(3)})`);
+        auroraGrad.addColorStop(1, "rgba(52, 211, 153, 0)");
+        ctx.fillStyle = auroraGrad;
+        ctx.fillRect(0, 30, canvas.width, 140);
+      }
     }
   }
 
-  if (currentStageConfig().biome === "frost") {
+  const frostGlowIntensity = world3FrostGlowIntensity();
+  if (frostGlowIntensity > 0.02) {
     const auroraGrad = ctx.createLinearGradient(0, 24, canvas.width, 120);
     auroraGrad.addColorStop(0, "rgba(125, 211, 252, 0)");
-    auroraGrad.addColorStop(0.5, "rgba(186, 230, 253, 0.22)");
-    auroraGrad.addColorStop(1, "rgba(167, 139, 250, 0.12)");
+    auroraGrad.addColorStop(0.5, `rgba(186, 230, 253, ${(0.22 * frostGlowIntensity).toFixed(3)})`);
+    auroraGrad.addColorStop(1, `rgba(167, 139, 250, ${(0.12 * frostGlowIntensity).toFixed(3)})`);
     ctx.fillStyle = auroraGrad;
     ctx.fillRect(0, 20, canvas.width, 110);
   }
 
-  if (isThawStage()) {
+  const thawSteamIntensity = world3ThawSteamIntensity();
+  if (thawSteamIntensity > 0.02) {
     const steamGrad = ctx.createLinearGradient(0, 0, 0, groundY);
-    steamGrad.addColorStop(0, "rgba(68, 64, 60, 0.15)");
-    steamGrad.addColorStop(0.55, "rgba(127, 29, 29, 0.12)");
-    steamGrad.addColorStop(1, "rgba(251, 146, 60, 0.08)");
+    steamGrad.addColorStop(0, `rgba(68, 64, 60, ${(0.15 * thawSteamIntensity).toFixed(3)})`);
+    steamGrad.addColorStop(0.55, `rgba(127, 29, 29, ${(0.12 * thawSteamIntensity).toFixed(3)})`);
+    steamGrad.addColorStop(1, `rgba(251, 146, 60, ${(0.08 * thawSteamIntensity).toFixed(3)})`);
     ctx.fillStyle = steamGrad;
     ctx.fillRect(0, 0, canvas.width, groundY);
   }
@@ -3103,12 +3180,12 @@ function drawBackground() {
   ctx.lineTo(canvas.width, groundY);
   ctx.stroke();
 
-  if (currentStageConfig().biome === "frost") {
-    ctx.fillStyle = "rgba(255,255,255,0.12)";
+  if (frostGlowIntensity > 0.02) {
+    ctx.fillStyle = `rgba(255,255,255,${(0.12 * frostGlowIntensity).toFixed(3)})`;
     ctx.fillRect(0, groundY - 28, canvas.width, 32);
-    ctx.fillStyle = "rgba(186, 230, 253, 0.18)";
+    ctx.fillStyle = `rgba(186, 230, 253, ${(0.18 * frostGlowIntensity).toFixed(3)})`;
     ctx.fillRect(0, groundY - 4, canvas.width, 8);
-    ctx.strokeStyle = "rgba(186, 230, 253, 0.35)";
+    ctx.strokeStyle = `rgba(186, 230, 253, ${(0.35 * frostGlowIntensity).toFixed(3)})`;
     ctx.lineWidth = 1;
     for (let i = 0; i < 8; i += 1) {
       const crackX = (i * 137 + frame * 0.08) % (canvas.width + 80) - 40;
@@ -3120,15 +3197,15 @@ function drawBackground() {
     }
   }
 
-  if (isThawStage()) {
-    ctx.fillStyle = "rgba(226, 232, 240, 0.14)";
+  if (thawSteamIntensity > 0.02) {
+    ctx.fillStyle = `rgba(226, 232, 240, ${(0.14 * thawSteamIntensity).toFixed(3)})`;
     ctx.fillRect(0, groundY - 18, canvas.width, 22);
-    ctx.fillStyle = "rgba(251, 146, 60, 0.22)";
+    ctx.fillStyle = `rgba(251, 146, 60, ${(0.22 * thawSteamIntensity).toFixed(3)})`;
     for (let i = 0; i < 10; i += 1) {
       const gx = (i * 149 + frame * 0.12) % (canvas.width + 60) - 30;
       ctx.fillRect(gx, groundY + 2, 14, 3);
     }
-    ctx.strokeStyle = "rgba(248, 113, 113, 0.35)";
+    ctx.strokeStyle = `rgba(248, 113, 113, ${(0.35 * thawSteamIntensity).toFixed(3)})`;
     ctx.lineWidth = 1;
     for (let i = 0; i < 6; i += 1) {
       const cx = (i * 211 + frame * 0.05) % (canvas.width + 100) - 50;
@@ -3163,25 +3240,14 @@ function drawFireEffects() {
     return;
   }
 
-  ctx.fillStyle = "rgba(251, 146, 60, 0.75)";
-  for (let i = 0; i < 28; i += 1) {
+  ctx.fillStyle = "rgba(254, 240, 138, 0.28)";
+  for (let i = 0; i < 18; i += 1) {
     const ex = (i * 73 + frame * (0.4 + (i % 4) * 0.08)) % (canvas.width + 20) - 10;
     const ey = groundY - 20 - ((i * 41 + frame * (0.7 + (i % 3) * 0.15)) % (canvas.height - groundY - 40));
-    const size = i % 3 === 0 ? 2.5 : 1.5;
+    const size = i % 3 === 0 ? 1.8 : 1.1;
     ctx.beginPath();
     ctx.arc(ex, ey, size, 0, Math.PI * 2);
     ctx.fill();
-  }
-
-  if (heatPulseWarning > 0) {
-    const pulse = 0.35 + (heatPulseWarning / HEAT_PULSE_WARN_FRAMES) * 0.45;
-    const surgeHeight = 36 + (1 - heatPulseWarning / HEAT_PULSE_WARN_FRAMES) * 48;
-    const warnGrad = ctx.createLinearGradient(0, groundY - surgeHeight, 0, groundY + 20);
-    warnGrad.addColorStop(0, "rgba(239, 68, 68, 0)");
-    warnGrad.addColorStop(0.55, `rgba(249, 115, 22, ${pulse * 0.55})`);
-    warnGrad.addColorStop(1, `rgba(220, 38, 38, ${pulse * 0.85})`);
-    ctx.fillStyle = warnGrad;
-    ctx.fillRect(0, groundY - surgeHeight, canvas.width, surgeHeight + 20);
   }
 }
 
@@ -3792,9 +3858,23 @@ function drawThawObstacle(obs) {
   }
 }
 
+function drawVolcanicObstacleShadow(obs) {
+  ctx.fillStyle = "rgba(15, 23, 42, 0.58)";
+  ctx.beginPath();
+  ctx.ellipse(obs.x + obs.w * 0.5, groundY + 3, obs.w * 0.76, 7, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function strokeVolcanicObstacle(obs) {
+  ctx.strokeStyle = "#0f172a";
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(obs.x + 0.5, obs.y + 0.5, obs.w - 1, obs.h - 1);
+}
+
 function drawVolcanicObstacle(obs) {
   const cx = obs.x + obs.w * 0.5;
   const cy = obs.y + obs.h * 0.5;
+  drawVolcanicObstacleShadow(obs);
 
   if (obs.type === "fire_phoenix" || obs.type === "fire_boss") {
     const wingFlap = Math.sin(frame * 0.32 + obs.phase) * 8;
@@ -3820,21 +3900,30 @@ function drawVolcanicObstacle(obs) {
     ctx.lineTo(cx + 10, cy - 10);
     ctx.closePath();
     ctx.fill();
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 2;
+    ctx.stroke();
     ctx.fillStyle = "#111827";
     ctx.fillRect(obs.x + obs.w - 12, cy - 2, 3, 3);
     return;
   }
 
   if (obs.type === "fire_geyser") {
+    ctx.fillStyle = "#292524";
+    ctx.fillRect(obs.x, obs.y + obs.h - 18, obs.w, 18);
+    ctx.fillStyle = "#44403c";
+    ctx.fillRect(obs.x + 2, obs.y + obs.h - 28, obs.w - 4, 10);
     const geyserGrad = ctx.createLinearGradient(obs.x, obs.y, obs.x, obs.y + obs.h);
-    geyserGrad.addColorStop(0, "#fef08a");
-    geyserGrad.addColorStop(0.35, "#fb923c");
+    geyserGrad.addColorStop(0, "#fef9c3");
+    geyserGrad.addColorStop(0.35, "#fbbf24");
+    geyserGrad.addColorStop(0.7, "#ea580c");
     geyserGrad.addColorStop(1, "#7c2d12");
     ctx.fillStyle = geyserGrad;
-    ctx.fillRect(obs.x + 4, obs.y, obs.w - 8, obs.h);
-    ctx.fillStyle = "rgba(254, 240, 138, 0.65)";
+    ctx.fillRect(obs.x + 5, obs.y + 4, obs.w - 10, obs.h - 22);
+    strokeVolcanicObstacle(obs);
+    ctx.fillStyle = "#fffbeb";
     for (let g = 0; g < 3; g += 1) {
-      const gy = obs.y + 8 + g * 14 + Math.sin(frame * 0.25 + obs.x + g) * 3;
+      const gy = obs.y + 10 + g * 14 + Math.sin(frame * 0.25 + obs.x + g) * 3;
       ctx.beginPath();
       ctx.arc(obs.x + obs.w * 0.5, gy, 4 - g * 0.5, 0, Math.PI * 2);
       ctx.fill();
@@ -3843,13 +3932,20 @@ function drawVolcanicObstacle(obs) {
   }
 
   if (obs.type === "fire_ember") {
-    ctx.fillStyle = "rgba(251, 146, 60, 0.85)";
+    ctx.fillStyle = "#292524";
     ctx.beginPath();
-    ctx.arc(cx, cy, obs.w * 0.38, 0, Math.PI * 2);
+    ctx.arc(cx, cy, obs.w * 0.42, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "rgba(254, 240, 138, 0.9)";
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.fillStyle = "#dc2626";
     ctx.beginPath();
-    ctx.arc(cx - 3, cy - 3, obs.w * 0.14, 0, Math.PI * 2);
+    ctx.arc(cx, cy, obs.w * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#fef08a";
+    ctx.beginPath();
+    ctx.arc(cx - 2, cy - 2, obs.w * 0.12, 0, Math.PI * 2);
     ctx.fill();
     return;
   }
@@ -3861,20 +3957,26 @@ function drawVolcanicObstacle(obs) {
     pillarGrad.addColorStop(1, "#292524");
     ctx.fillStyle = pillarGrad;
     ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
-    ctx.strokeStyle = "#fb923c";
+    strokeVolcanicObstacle(obs);
+    ctx.strokeStyle = "#fbbf24";
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(obs.x + 6, obs.y + 8);
     ctx.lineTo(obs.x + obs.w - 6, obs.y + obs.h - 8);
     ctx.stroke();
+    ctx.fillStyle = "rgba(251, 191, 36, 0.45)";
+    ctx.fillRect(obs.x + 4, obs.y + 4, obs.w - 8, 8);
     return;
   }
 
-  ctx.fillStyle = "#57534e";
+  ctx.fillStyle = "#44403c";
   ctx.beginPath();
   ctx.ellipse(cx, cy, obs.w * 0.46, obs.h * 0.4, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = "#fb923c";
+  ctx.strokeStyle = "#0f172a";
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  ctx.strokeStyle = "#fbbf24";
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(obs.x + 4, obs.y + 6);
