@@ -22,7 +22,7 @@
       href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Russo+One&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./style.css?v=pwa-exit" />
+    <link rel="stylesheet" href="./style.css?v=no-canvas-select" />
   </head>
   <body>
     <main class="game-shell">
@@ -46,7 +46,7 @@
           </section>
         </div>
         <div class="canvas-stage">
-          <canvas id="game-canvas" width="960" height="540"></canvas>
+          <canvas id="game-canvas" width="960" height="540" draggable="false"></canvas>
           <button id="menu-toggle-btn" type="button" class="canvas-float-btn" aria-label="Open menu" aria-expanded="false" aria-controls="game-menu">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
               <path d="M4 7h16v2H4V7zm0 5h16v2H4v-2zm0 5h16v2H4v-2z" />
@@ -144,7 +144,7 @@
         </button>
       </section>
 
-          <p class="game-menu-hint">Tap top of game to jump, bottom to slide · Space / ↓ on keyboard</p>
+          <p class="game-menu-hint">Tap top to jump, bottom to slide · Hold right side to sprint · Space / ↓ on keyboard</p>
         </div>
       </div>
     </aside>
@@ -169,6 +169,6 @@
 
     <audio id="bg-music" src="./assets/music/bg-loop.wav?v=ecaed7e" loop preload="auto" playsinline></audio>
     <script src="./pwa.js?v=ecaed7e"></script>
-    <script src="./game.js?v=pwa-exit-restore"></script>
+    <script src="./game.js?v=no-canvas-select"></script>
   </body>
 </html>

@@ -1913,14 +1913,101 @@ function handleCanvasPointer(offsetY) {
   }
 }
 
+const SPRINT_LONG_PRESS_MS = 350;
+
 let pointerStartOffsetY = null;
-canvas.addEventListener("pointerdown", (event) => {
-  pointerStartOffsetY = event.offsetY;
-});
-canvas.addEventListener("pointerup", (event) => {
-  const offsetY = pointerStartOffsetY ?? event.offsetY;
+let pointerStartOffsetX = null;
+let activePointerId = null;
+let sprintLongPressTimer = null;
+let sprintHoldActive = false;
+
+function isCanvasRightSide(offsetX) {
+  return offsetX >= canvas.offsetWidth / 2;
+}
+
+function usesTouchSprintControls(event) {
+  return event.pointerType === "touch" || isSmallScreen();
+}
+
+function clearSprintLongPressTimer() {
+  if (sprintLongPressTimer !== null) {
+    window.clearTimeout(sprintLongPressTimer);
+    sprintLongPressTimer = null;
+  }
+}
+
+function endSprintHold() {
+  clearSprintLongPressTimer();
+  if (sprintHoldActive) {
+    sprintHoldActive = false;
+    sprinting = false;
+  }
+}
+
+function resetCanvasPointerState() {
   pointerStartOffsetY = null;
+  pointerStartOffsetX = null;
+  activePointerId = null;
+  endSprintHold();
+}
+
+function startSprintLongPress(event) {
+  if (!usesTouchSprintControls(event) || state !== "playing" || !isCanvasRightSide(event.offsetX)) {
+    return;
+  }
+  clearSprintLongPressTimer();
+  try {
+    canvas.setPointerCapture(event.pointerId);
+  } catch {
+    // Ignore capture failures on unsupported browsers.
+  }
+  sprintLongPressTimer = window.setTimeout(() => {
+    sprintLongPressTimer = null;
+    sprintHoldActive = true;
+    sprinting = true;
+  }, SPRINT_LONG_PRESS_MS);
+}
+
+canvas.addEventListener("contextmenu", (event) => {
+  event.preventDefault();
+});
+canvas.addEventListener("selectstart", (event) => {
+  event.preventDefault();
+});
+
+canvas.addEventListener("pointerdown", (event) => {
+  if (event.pointerType === "touch") {
+    event.preventDefault();
+  }
+  pointerStartOffsetY = event.offsetY;
+  pointerStartOffsetX = event.offsetX;
+  activePointerId = event.pointerId;
+  startSprintLongPress(event);
+}, { passive: false });
+
+canvas.addEventListener("pointerup", (event) => {
+  if (activePointerId !== null && event.pointerId !== activePointerId) {
+    return;
+  }
+
+  const offsetY = pointerStartOffsetY ?? event.offsetY;
+  const wasSprintHold = sprintHoldActive;
+  endSprintHold();
+  pointerStartOffsetY = null;
+  pointerStartOffsetX = null;
+  activePointerId = null;
+
+  if (wasSprintHold) {
+    return;
+  }
+
   handleCanvasPointer(offsetY);
+});
+
+canvas.addEventListener("pointercancel", (event) => {
+  if (activePointerId === null || event.pointerId === activePointerId) {
+    resetCanvasPointerState();
+  }
 });
 
 function preventDoubleTapZoom() {

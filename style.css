@@ -103,6 +103,9 @@ body {
   flex-direction: column;
   align-items: center;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .canvas-stage {
@@ -119,6 +122,9 @@ body {
   touch-action: none;
   overflow: visible;
   z-index: 1;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 #game-canvas {
@@ -129,6 +135,10 @@ body {
   border: 2px solid rgba(148, 163, 184, 0.4);
   background: #87ceeb;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
 }
 
 .canvas-float-btn {
