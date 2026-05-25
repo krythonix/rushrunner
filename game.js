@@ -53,7 +53,7 @@ const gravity = 0.84;
 const baseJumpForce = -14.8;
 
 const STAGES_PER_WORLD = 8;
-const CAMPAIGN_MAX_SPEED = 6.0;
+const CAMPAIGN_MAX_SPEED = 8.0;
 const ENDLESS_MAX_SPEED = 9.4;
 const WORLD2_START = STAGES_PER_WORLD + 1;
 const WORLD3_START = STAGES_PER_WORLD * 2 + 1;
