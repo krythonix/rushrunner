@@ -1255,8 +1255,12 @@ function isIOS() {
   );
 }
 
+function isAndroid() {
+  return window.RunnerRushPwa?.isAndroid?.() ?? /Android/.test(navigator.userAgent);
+}
+
 function canUseNativeFullscreen() {
-  if (isIOS()) {
+  if (isIOS() || (isAndroid() && isSmallScreen())) {
     return false;
   }
   const root = document.documentElement;
@@ -1325,6 +1329,9 @@ async function ensureLandscape() {
 }
 
 async function lockLandscape() {
+  if (isAndroid()) {
+    return false;
+  }
   if (!screen.orientation?.lock) {
     return false;
   }
