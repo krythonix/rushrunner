@@ -785,6 +785,13 @@ function pauseMusic() {
   stopHtmlAudioPlayback();
 }
 
+function isMusicAudiblyPlaying() {
+  if (musicWebAudioActive && musicBufferSource) {
+    return true;
+  }
+  return !!(bgMusic && musicEnabled && !bgMusic.paused && !bgMusic.muted);
+}
+
 function setAudioParam(param, value, smooth = true) {
   if (!param) {
     return;
@@ -824,6 +831,10 @@ function startWebAudioPlayback() {
   if (!musicContext || !musicBuffer || !musicEnabled) {
     return false;
   }
+  if (musicWebAudioActive && musicBufferSource) {
+    syncWorldAudioProfile(true);
+    return true;
+  }
   stopWebAudioPlayback();
   stopHtmlAudioPlayback();
   const profile = WORLD_AUDIO_PROFILES[musicWorldForStage() - 1];
@@ -849,10 +860,16 @@ function startHtmlAudioPlayback() {
   if (!bgMusic || !musicEnabled) {
     return;
   }
-  stopWebAudioPlayback();
+  if (musicWebAudioActive) {
+    return;
+  }
   syncWorldAudioProfile(true);
   bgMusic.volume = 0.35;
   bgMusic.muted = false;
+  if (!bgMusic.paused) {
+    return;
+  }
+  stopWebAudioPlayback();
   const playAttempt = bgMusic.play();
   if (playAttempt !== undefined) {
     playAttempt.catch(() => {});
@@ -878,11 +895,19 @@ async function enhanceWithWebAudioIfReady() {
   if (!musicEnabled || state !== "playing" || document.hidden) {
     return;
   }
+  if (musicWebAudioActive) {
+    syncWorldAudioProfile(true);
+    return;
+  }
   startWebAudioPlayback();
 }
 
 function startMusicPlayback() {
   if (!musicEnabled || state !== "playing" || document.hidden) {
+    return;
+  }
+  if (isMusicAudiblyPlaying()) {
+    syncWorldAudioProfile(true);
     return;
   }
   syncWorldAudioProfile(true);
@@ -908,7 +933,9 @@ function registerMusicGestureUnlock() {
       musicUnlocked = true;
       void loadMusicBuffer();
     }
-    startMusicPlayback();
+    if (state === "playing" && !document.hidden && !isMusicAudiblyPlaying()) {
+      startMusicPlayback();
+    }
   };
   document.addEventListener("pointerdown", onGesture, { passive: true });
   document.addEventListener("keydown", onGesture);
