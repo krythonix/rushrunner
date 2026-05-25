@@ -288,6 +288,98 @@ const BIOME_PALETTES = {
   },
 };
 
+// World 1 uses a slow color arc instead of snapping per-stage biomes.
+const WORLD1_COLOR_KEYFRAMES = [
+  { t: 0, biome: "grass" },
+  { t: 0.3, biome: "desert" },
+  { t: 0.55, biome: "dusk" },
+  { t: 0.78, biome: "storm" },
+  { t: 1, biome: "night" },
+];
+
+function clamp01(value) {
+  return Math.max(0, Math.min(1, value));
+}
+
+function smoothstep(value) {
+  const t = clamp01(value);
+  return t * t * (3 - 2 * t);
+}
+
+function parseColor(color) {
+  if (color.startsWith("#")) {
+    const hex = color.slice(1);
+    const expanded =
+      hex.length === 3 ? hex.split("").map((ch) => ch + ch).join("") : hex;
+    const n = parseInt(expanded, 16);
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255, a: 1 };
+  }
+  const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+  if (match) {
+    return {
+      r: Number(match[1]),
+      g: Number(match[2]),
+      b: Number(match[3]),
+      a: match[4] !== undefined ? Number(match[4]) : 1,
+    };
+  }
+  return { r: 0, g: 0, b: 0, a: 1 };
+}
+
+function formatColor({ r, g, b, a }) {
+  const rr = Math.max(0, Math.min(255, Math.round(r)));
+  const gg = Math.max(0, Math.min(255, Math.round(g)));
+  const bb = Math.max(0, Math.min(255, Math.round(b)));
+  if (a >= 0.999) {
+    return `#${((1 << 24) + (rr << 16) + (gg << 8) + bb).toString(16).slice(1)}`;
+  }
+  return `rgba(${rr}, ${gg}, ${bb}, ${a.toFixed(3)})`;
+}
+
+function lerpColor(from, to, amount) {
+  const a = parseColor(from);
+  const b = parseColor(to);
+  const t = clamp01(amount);
+  return formatColor({
+    r: a.r + (b.r - a.r) * t,
+    g: a.g + (b.g - a.g) * t,
+    b: a.b + (b.b - a.b) * t,
+    a: a.a + (b.a - a.a) * t,
+  });
+}
+
+function lerpPalette(fromPalette, toPalette, amount) {
+  const t = clamp01(amount);
+  return {
+    sky: [
+      lerpColor(fromPalette.sky[0], toPalette.sky[0], t),
+      lerpColor(fromPalette.sky[1], toPalette.sky[1], t),
+    ],
+    ground: lerpColor(fromPalette.ground, toPalette.ground, t),
+    hills: lerpColor(fromPalette.hills, toPalette.hills, t),
+    dunes: lerpColor(fromPalette.dunes, toPalette.dunes, t),
+    line: lerpColor(fromPalette.line, toPalette.line, t),
+    clouds: lerpColor(fromPalette.clouds, toPalette.clouds, t),
+  };
+}
+
+function paletteForBiome(biome) {
+  return BIOME_PALETTES[biome] || BIOME_PALETTES.grass;
+}
+
+function paletteAtWorld1Progress(progress) {
+  const p = clamp01(progress);
+  let index = 0;
+  while (index < WORLD1_COLOR_KEYFRAMES.length - 2 && p > WORLD1_COLOR_KEYFRAMES[index + 1].t) {
+    index += 1;
+  }
+  const start = WORLD1_COLOR_KEYFRAMES[index];
+  const end = WORLD1_COLOR_KEYFRAMES[index + 1];
+  const span = end.t - start.t || 1;
+  const localT = smoothstep((p - start.t) / span);
+  return lerpPalette(paletteForBiome(start.biome), paletteForBiome(end.biome), localT);
+}
+
 /**
  * Dev preview URLs (local testing only):
  *   ?worldintro=2|3|4|5     — show that world intro immediately on load
@@ -1377,6 +1469,35 @@ function isFrostStage() {
   return !endlessMode && currentStageConfig().slippery === true;
 }
 
+function isWorld1Stage() {
+  return !endlessMode && save.currentStage >= 1 && save.currentStage < WORLD2_START;
+}
+
+function world1OverallProgress() {
+  if (!isWorld1Stage()) {
+    return 0;
+  }
+  const stageSpan = WORLD2_START - 1;
+  if (state === "playing") {
+    const target = stageTargetScore();
+    const stageT =
+      target > 0 ? clamp01((score - stageStartScore) / target) : 0;
+    return clamp01((save.currentStage - 1 + stageT) / stageSpan);
+  }
+  return clamp01((save.currentStage - 1) / stageSpan);
+}
+
+function getActivePalette() {
+  if (isWorld1Stage()) {
+    return paletteAtWorld1Progress(world1OverallProgress());
+  }
+  return paletteForBiome(currentStageConfig().biome);
+}
+
+function world1StarIntensity() {
+  return smoothstep((world1OverallProgress() - 0.58) / 0.34);
+}
+
 function isWorld3Stage() {
   return !endlessMode && save.currentStage >= WORLD3_START && save.currentStage < WORLD4_START;
 }
@@ -1391,6 +1512,10 @@ function isPureFrostStage() {
 
 function isSwimmingStage() {
   return !endlessMode && currentStageConfig().swimming === true;
+}
+
+function isFlyingStage() {
+  return !endlessMode && currentStageConfig().flying === true;
 }
 
 function isVolcanicStage() {
@@ -1834,18 +1959,37 @@ function startRun(options = {}) {
   updateHud();
 }
 
+function advanceToNextStage() {
+  const stage = currentStageConfig();
+  stageStartScore = score;
+  speed = Math.max(speed, stage.startSpeed);
+  player.shieldTimer = Math.max(player.shieldTimer, STAGE_CLEAR_SHIELD_FRAMES);
+  resetHeatPulse();
+  syncWorldAudioProfile(true);
+  setState("playing");
+  unlockMusicFromGesture();
+  startMusicPlayback();
+  updateHud();
+}
+
+function continueAfterStageClear() {
+  if (save.currentStage >= STAGES.length && save.endlessUnlocked && !endlessMode) {
+    endlessMode = true;
+  } else if (save.currentStage > STAGES.length) {
+    save.currentStage = STAGES.length;
+    endlessMode = false;
+  }
+  persistSave();
+  advanceToNextStage();
+}
+
 function restart() {
   const continuingStage = state === "stageclear";
   if (continuingStage) {
-    if (save.currentStage >= STAGES.length && save.endlessUnlocked && !endlessMode) {
-      endlessMode = true;
-    } else if (save.currentStage > STAGES.length) {
-      save.currentStage = STAGES.length;
-      endlessMode = false;
-    }
-    persistSave();
+    continueAfterStageClear();
+    return;
   }
-  startRun({ continueAfterClear: continuingStage && save.currentStage <= STAGES.length });
+  startRun();
 }
 
 function restartFromStageZero() {
@@ -2328,12 +2472,14 @@ function registerGameOver() {
 
 function registerStageClear() {
   collectRunRewards(true);
+  player.shieldTimer = Math.max(player.shieldTimer, STAGE_CLEAR_SHIELD_FRAMES);
   if (save.currentStage < STAGES.length) {
     const prevStage = STAGES[save.currentStage - 1];
     if (save.unlockedStage === save.currentStage) {
       save.unlockedStage += 1;
     }
     save.currentStage += 1;
+    stageStartScore = score;
     persistSave();
     applyStageWorldTransition(prevStage);
     updateHud();
@@ -2342,15 +2488,16 @@ function registerStageClear() {
       activeWorldIntro = pendingIntro;
       setState("worldintro");
     } else {
-      setState("stageclear");
+      continueAfterStageClear();
     }
     return;
   }
 
   save.endlessUnlocked = true;
+  endlessMode = true;
+  stageStartScore = score;
   persistSave();
-  setState("stageclear");
-  updateHud();
+  advanceToNextStage();
 }
 
 function update() {
@@ -2534,6 +2681,147 @@ function update() {
   updateHud();
 }
 
+function drawCloudShape(x, y, scale, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.beginPath();
+  ctx.ellipse(x, y, 44 * scale, 20 * scale, 0, 0, Math.PI * 2);
+  ctx.ellipse(x + 28 * scale, y - 6 * scale, 32 * scale, 17 * scale, 0, 0, Math.PI * 2);
+  ctx.ellipse(x - 24 * scale, y + 3 * scale, 26 * scale, 15 * scale, 0, 0, Math.PI * 2);
+  ctx.ellipse(x + 12 * scale, y + 5 * scale, 28 * scale, 13 * scale, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawCloudField(palette, options = {}) {
+  const density = options.density ?? 1;
+  const maxY = options.maxY ?? groundY - 16;
+  ctx.fillStyle = palette.clouds;
+
+  const layers = [
+    { speed: 0.1, count: 4, scale: 1.45, alpha: 0.26, y: 36, gap: 190 },
+    { speed: 0.18, count: 5, scale: 1.05, alpha: 0.46, y: 66, gap: 165 },
+    { speed: 0.28, count: 4, scale: 0.82, alpha: 0.62, y: 50, gap: 205 },
+    { speed: 0.42, count: 3, scale: 0.64, alpha: 0.8, y: 86, gap: 235 },
+  ];
+
+  if (isFlyingStage()) {
+    layers.push(
+      { speed: 0.06, count: 6, scale: 2.05, alpha: 0.2, y: 24, gap: 150 },
+      { speed: 0.52, count: 4, scale: 0.58, alpha: 0.88, y: 108, gap: 185 },
+    );
+  }
+
+  layers.forEach((layer, layerIndex) => {
+    const count = Math.ceil(layer.count * density);
+    for (let i = 0; i < count; i += 1) {
+      const seed = layerIndex * 7919 + i * 997;
+      const drift = (frame * layer.speed + seed * 0.19) % (canvas.width + layer.gap * 2);
+      const x = canvas.width - drift + (seed % 60);
+      const y = Math.min(maxY - 18 * layer.scale, layer.y + (seed % 46));
+      const scale = layer.scale * (0.88 + (seed % 7) * 0.04);
+      drawCloudShape(x, y, scale, layer.alpha);
+    }
+  });
+}
+
+function drawFlyingSkyExtras(palette) {
+  const biome = currentStageConfig().biome;
+
+  if (biome === "sky") {
+    const sunX = canvas.width * 0.78;
+    const sunY = 56;
+    const sunGrad = ctx.createRadialGradient(sunX, sunY, 4, sunX, sunY, 40);
+    sunGrad.addColorStop(0, "rgba(254, 249, 195, 0.95)");
+    sunGrad.addColorStop(0.45, "rgba(253, 224, 71, 0.35)");
+    sunGrad.addColorStop(1, "rgba(253, 224, 71, 0)");
+    ctx.fillStyle = sunGrad;
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, 40, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(254, 240, 138, 0.85)";
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, 16, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  if (biome === "aurora" || biome === "void") {
+    ctx.fillStyle = biome === "void" ? "rgba(196, 181, 253, 0.55)" : "rgba(224, 242, 254, 0.7)";
+    ctx.beginPath();
+    ctx.arc(canvas.width * 0.82, 48, 14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(148, 163, 184, 0.25)";
+    ctx.beginPath();
+    ctx.arc(canvas.width * 0.84, 50, 18, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const floorOffset = (frame * 0.08) % 320;
+  ctx.fillStyle = palette.clouds;
+  for (let i = 0; i < 9; i += 1) {
+    const seed = i * 503;
+    const x = ((seed * 1.7 + floorOffset) % (canvas.width + 220)) - 90;
+    const y = groundY - 10 - (seed % 38);
+    drawCloudShape(x, y, 1.75 + (i % 3) * 0.35, 0.32 + (i % 2) * 0.14);
+  }
+
+  ctx.strokeStyle =
+    biome === "void" ? "rgba(167, 139, 250, 0.35)" : "rgba(15, 23, 42, 0.22)";
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = "round";
+  for (let b = 0; b < 7; b += 1) {
+    const bx = (b * 173 + frame * (0.25 + b * 0.04)) % (canvas.width + 40) - 20;
+    const by = 36 + (b * 29) % Math.floor(groundY * 0.58);
+    const wing = 5 + (b % 3);
+    ctx.beginPath();
+    ctx.moveTo(bx - wing, by);
+    ctx.quadraticCurveTo(bx, by - 3, bx + wing, by);
+    ctx.stroke();
+  }
+
+  if (biome === "storm") {
+    ctx.fillStyle = "rgba(51, 65, 85, 0.48)";
+    const stormOffset = (frame * 0.14) % (canvas.width + 320);
+    for (let s = 0; s < 6; s += 1) {
+      const sx = canvas.width - stormOffset + s * 130 - 30;
+      const sy = 26 + s * 16;
+      drawCloudShape(sx, sy, 1.55 + s * 0.12, 0.52);
+    }
+  }
+}
+
+function drawSkyAmbience() {
+  if (!isFlyingStage()) {
+    return;
+  }
+
+  const biome = currentStageConfig().biome;
+
+  if (biome === "storm") {
+    ctx.strokeStyle = "rgba(148, 163, 184, 0.32)";
+    ctx.lineWidth = 1;
+    for (let r = 0; r < 42; r += 1) {
+      const rx = (r * 67 + frame * (2.4 + r % 3)) % (canvas.width + 10);
+      const ry = (r * 41 + frame * (3.8 + r % 2)) % groundY;
+      ctx.beginPath();
+      ctx.moveTo(rx, ry);
+      ctx.lineTo(rx - 2, ry + 9 + (r % 4));
+      ctx.stroke();
+    }
+  }
+
+  if (biome === "sky") {
+    ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+    for (let w = 0; w < 5; w += 1) {
+      const wx = (w * 211 + frame * 0.18) % (canvas.width + 80);
+      const wy = 120 + (w * 23) % 80;
+      ctx.beginPath();
+      ctx.ellipse(wx, wy, 90, 18, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
 function drawUnderwaterBackground() {
   const palette = BIOME_PALETTES[currentStageConfig().biome] || BIOME_PALETTES.ocean;
   const waterGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -2603,15 +2891,21 @@ function drawBackground() {
     return;
   }
 
-  const palette = BIOME_PALETTES[currentStageConfig().biome] || BIOME_PALETTES.grass;
+  const palette = getActivePalette();
+  const biome = currentStageConfig().biome;
   const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
   skyGradient.addColorStop(0, palette.sky[0]);
   skyGradient.addColorStop(1, palette.sky[1]);
   ctx.fillStyle = skyGradient;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  if (currentStageConfig().biome === "night" || currentStageConfig().biome === "storm") {
-    ctx.fillStyle = "rgba(255,255,255,0.85)";
+  const starIntensity = isWorld1Stage()
+    ? world1StarIntensity()
+    : biome === "night" || biome === "storm"
+      ? 1
+      : 0;
+  if (starIntensity > 0.02) {
+    ctx.fillStyle = `rgba(255,255,255,${(0.85 * starIntensity).toFixed(3)})`;
     for (let i = 0; i < 24; i += 1) {
       const sx = (i * 113 + frame * 0.04) % canvas.width;
       const sy = 24 + (i * 37) % 120;
@@ -2619,7 +2913,7 @@ function drawBackground() {
     }
   }
 
-  if (currentStageConfig().biome === "aurora" || currentStageConfig().biome === "void") {
+  if (biome === "aurora" || biome === "void") {
     ctx.fillStyle = "rgba(255,255,255,0.85)";
     for (let i = 0; i < 18; i += 1) {
       const sx = (i * 97 + frame * 0.02) % canvas.width;
@@ -2655,12 +2949,11 @@ function drawBackground() {
     ctx.fillRect(0, 0, canvas.width, groundY);
   }
 
-  const cloudOffset = (frame * 0.35) % (canvas.width + 120);
-  ctx.fillStyle = palette.clouds;
-  ctx.beginPath();
-  ctx.ellipse(canvas.width - cloudOffset, 70, 44, 20, 0, 0, Math.PI * 2);
-  ctx.ellipse(canvas.width - cloudOffset + 28, 64, 30, 16, 0, 0, Math.PI * 2);
-  ctx.fill();
+  drawCloudField(palette, { density: isFlyingStage() ? 1.35 : 1 });
+
+  if (isFlyingStage()) {
+    drawFlyingSkyExtras(palette);
+  }
 
   ctx.fillStyle = palette.ground;
   ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
@@ -3682,6 +3975,7 @@ function drawOverlay() {
 function loop() {
   update();
   drawBackground();
+  drawSkyAmbience();
   drawFrostEffects();
   drawThawEffects();
   drawWaterEffects();
