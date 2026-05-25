@@ -2913,9 +2913,28 @@ function drawSwimmingPlayer() {
   ctx.ellipse(player.x + 20, drawY + drawH * 0.6, 11, 8, 0, 0, Math.PI * 2);
   ctx.fill();
 
+  // Oxygen tank on the cat's back
+  ctx.fillStyle = "#475569";
+  ctx.fillRect(player.x + 7, drawY + 17, 11, 20);
+  ctx.fillStyle = "#64748b";
+  ctx.fillRect(player.x + 8, drawY + 18, 9, 5);
+  ctx.fillStyle = "#22c55e";
+  ctx.fillRect(player.x + 8, drawY + 30, 9, 3);
+  ctx.strokeStyle = "#334155";
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(player.x + 7.5, drawY + 17.5, 10, 19);
+
   ctx.fillStyle = catFur;
   ctx.beginPath();
   ctx.ellipse(player.x + 36, drawY + 12, 10, 9, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = catFurDark;
+  ctx.beginPath();
+  ctx.moveTo(player.x + 29, drawY + 6);
+  ctx.lineTo(player.x + 32, drawY - 2);
+  ctx.lineTo(player.x + 35, drawY + 6);
+  ctx.closePath();
   ctx.fill();
 
   ctx.strokeStyle = catFurDark;
@@ -2934,10 +2953,60 @@ function drawSwimmingPlayer() {
   ctx.fillRect(player.x + 10, drawY + drawH - 10, 5, 8 + Math.max(0, wiggle * 0.2));
   ctx.fillRect(player.x + 22, drawY + drawH - 10, 5, 8 - Math.max(0, wiggle * 0.2));
 
-  ctx.fillStyle = "#111827";
-  ctx.fillRect(player.x + 38, drawY + 11, 2, 2);
-  ctx.fillStyle = "#f8fafc";
-  ctx.fillRect(player.x + 36, drawY + 15, 4, 1);
+  const maskCx = player.x + 39;
+  const maskCy = drawY + 14;
+
+  // Hose from tank to mask
+  ctx.strokeStyle = "#334155";
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(player.x + 16, drawY + 22);
+  ctx.quadraticCurveTo(player.x + 24, drawY + 18, maskCx - 2, maskCy + 2);
+  ctx.stroke();
+
+  // Mask straps
+  ctx.strokeStyle = "#1e293b";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(maskCx - 6, maskCy - 2);
+  ctx.quadraticCurveTo(player.x + 28, drawY + 5, player.x + 30, drawY + 3);
+  ctx.moveTo(maskCx - 6, maskCy + 4);
+  ctx.quadraticCurveTo(player.x + 24, drawY + 20, player.x + 14, drawY + 22);
+  ctx.stroke();
+
+  // Mask facepiece
+  ctx.fillStyle = "rgba(8, 145, 178, 0.42)";
+  ctx.strokeStyle = "#0e7490";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(maskCx, maskCy, 11, 10, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Lens reflection
+  ctx.fillStyle = "rgba(224, 242, 254, 0.6)";
+  ctx.beginPath();
+  ctx.ellipse(maskCx - 3, maskCy - 2, 4.5, 3.5, -0.35, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Regulator / mouthpiece
+  ctx.fillStyle = "#0369a1";
+  ctx.fillRect(maskCx + 4, maskCy + 1, 6, 5);
+  ctx.fillStyle = "#0ea5e9";
+  ctx.fillRect(maskCx + 5, maskCy + 2, 4, 2);
+
+  // Small bubbles from the mask
+  const bubblePhase = frame * 0.22;
+  ctx.fillStyle = "rgba(186, 230, 253, 0.7)";
+  for (let i = 0; i < 3; i += 1) {
+    const bx = maskCx + 6 + i * 3;
+    const by = maskCy - 6 - ((bubblePhase + i * 8) % 18);
+    const br = 1.2 + (i % 2) * 0.6;
+    ctx.beginPath();
+    ctx.arc(bx, by, br, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 function drawFlyingObstacle(obs) {
