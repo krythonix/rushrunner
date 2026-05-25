@@ -197,10 +197,16 @@ html.force-landscape-active .menu-backdrop:not([hidden]) {
   transform-origin: center center;
 }
 
-body.pseudo-fullscreen-active .game-menu,
-body.pseudo-fullscreen-active .game-menu-scroll,
-body.pseudo-fullscreen-active .menu-backdrop:not([hidden]) {
-  touch-action: pan-x pan-y;
+html.menu-open.pseudo-fullscreen-active,
+body.menu-open.pseudo-fullscreen-active {
+  touch-action: auto;
+}
+
+html.menu-open .game-menu,
+html.menu-open .game-menu-orient,
+html.menu-open .game-menu-scroll,
+html.menu-open .menu-backdrop:not([hidden]) {
+  touch-action: pan-y;
 }
 
 .game-menu-orient,
@@ -264,7 +270,9 @@ html.force-landscape-active .game-menu.open {
 html.force-landscape-active .game-menu-orient {
   display: flex;
   flex-direction: column;
+  flex: 0 1 auto;
   width: min(420px, 92%);
+  min-height: 0;
   max-height: 85%;
   background: #0f172a;
   border: 1px solid rgba(148, 163, 184, 0.25);
@@ -279,13 +287,15 @@ html.force-landscape-active .game-menu-orient {
 }
 
 html.force-landscape-active .game-menu-scroll {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-x pan-y;
+  touch-action: pan-y;
 }
 
 html.force-landscape-active .game-menu-nav,

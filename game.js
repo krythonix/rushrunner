@@ -374,6 +374,8 @@ async function openGameMenu() {
   gameMenu.classList.add("open");
   gameMenu.setAttribute("aria-hidden", "false");
   menuBackdrop.hidden = false;
+  document.documentElement.classList.add("menu-open");
+  document.body.classList.add("menu-open");
   menuToggleBtn?.setAttribute("aria-expanded", "true");
 }
 
@@ -384,6 +386,8 @@ function closeGameMenu() {
   gameMenu.classList.remove("open");
   gameMenu.setAttribute("aria-hidden", "true");
   menuBackdrop.hidden = true;
+  document.documentElement.classList.remove("menu-open");
+  document.body.classList.remove("menu-open");
   menuToggleBtn?.setAttribute("aria-expanded", "false");
 }
 
