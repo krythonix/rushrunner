@@ -1124,63 +1124,6 @@ function closeGameMenu() {
   menuToggleBtn?.setAttribute("aria-expanded", "false");
 }
 
-function getMenuScrollEl() {
-  if (document.documentElement.classList.contains("force-landscape-active")) {
-    return gameMenu?.querySelector(".game-menu-scroll") ?? null;
-  }
-  return gameMenu;
-}
-
-function setupAndroidMenuScroll() {
-  if (!isAndroid() || !gameMenu) {
-    return;
-  }
-
-  let tracking = false;
-  let startY = 0;
-  let startScrollTop = 0;
-
-  gameMenu.addEventListener(
-    "touchstart",
-    (event) => {
-      if (!gameMenu.classList.contains("open")) {
-        tracking = false;
-        return;
-      }
-      const target = getMenuScrollEl();
-      if (!target || event.touches.length !== 1 || !target.contains(event.target)) {
-        tracking = false;
-        return;
-      }
-      tracking = true;
-      startY = event.touches[0].clientY;
-      startScrollTop = target.scrollTop;
-    },
-    { passive: true },
-  );
-
-  gameMenu.addEventListener(
-    "touchmove",
-    (event) => {
-      if (!tracking || event.touches.length !== 1) {
-        return;
-      }
-      const target = getMenuScrollEl();
-      if (!target) {
-        return;
-      }
-      target.scrollTop = startScrollTop + (startY - event.touches[0].clientY);
-    },
-    { passive: true },
-  );
-
-  const stopTracking = () => {
-    tracking = false;
-  };
-  gameMenu.addEventListener("touchend", stopTracking, { passive: true });
-  gameMenu.addEventListener("touchcancel", stopTracking, { passive: true });
-}
-
 function toggleGameMenu() {
   if (gameMenu?.classList.contains("open")) {
     closeGameMenu();
@@ -4485,6 +4428,9 @@ function preventDoubleTapZoom() {
   document.addEventListener(
     "touchend",
     (event) => {
+      if (document.body.classList.contains("menu-open")) {
+        return;
+      }
       const now = Date.now();
       if (now - lastTouchEnd <= 300) {
         event.preventDefault();
@@ -4541,7 +4487,6 @@ menuToggleBtn?.addEventListener("pointerdown", (event) => {
 });
 menuCloseBtn?.addEventListener("click", closeGameMenu);
 menuBackdrop?.addEventListener("click", closeGameMenu);
-setupAndroidMenuScroll();
 if (fullscreenBtn) {
   fullscreenBtn.addEventListener("click", (event) => {
     event.preventDefault();
@@ -4580,6 +4525,10 @@ document.addEventListener("visibilitychange", () => {
   }
   sprinting = false;
 });
+
+if (isAndroid()) {
+  document.documentElement.classList.add("is-android");
+}
 
 applyMusicSettings();
 updateMusicButton();
