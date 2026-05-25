@@ -61,7 +61,7 @@ const WORLD5_START = STAGES_PER_WORLD * 4 + 1;
 const WORLD_AUDIO_PROFILES = [
   { speed: 1.0, warmth: 0, depth: 20000 },
   { speed: 0.86, warmth: -3.5, depth: 850 },
-  { speed: 0.9, warmth: -5, depth: 5200 },
+  { speed: 0.9, warmth: -5, depth: 4800 },
   { speed: 1.05, warmth: -2, depth: 16500 },
   { speed: 1.08, warmth: 5, depth: 11500 },
 ];
@@ -87,10 +87,10 @@ const STAGES = [
   { name: "Ice Ravine", targetScore: 1320, startSpeed: 7.5, accel: 0.00205, spawn: 24, boss: false, biome: "frost", slippery: true },
   { name: "Glacier Pass", targetScore: 1400, startSpeed: 7.6, accel: 0.0021, spawn: 23, boss: false, biome: "frost", slippery: true },
   { name: "Boss: Frost Titan", targetScore: 1570, startSpeed: 7.8, accel: 0.0022, spawn: 21, boss: true, biome: "frost", slippery: true },
-  { name: "Ember Wastes", targetScore: 1660, startSpeed: 7.9, accel: 0.00225, spawn: 20, boss: false, biome: "ash" },
-  { name: "Magma Fields", targetScore: 1760, startSpeed: 8.0, accel: 0.0023, spawn: 19, boss: false, biome: "ash" },
-  { name: "Ash Storm", targetScore: 1960, startSpeed: 8.2, accel: 0.0024, spawn: 17, boss: false, biome: "ash" },
-  { name: "Final Boss: Inferno Lord", targetScore: 2100, startSpeed: 8.3, accel: 0.0025, spawn: 16, boss: true, biome: "ash" },
+  { name: "Thawing Crust", targetScore: 1660, startSpeed: 7.9, accel: 0.00225, spawn: 20, boss: false, biome: "ash", slippery: true },
+  { name: "Steam Flats", targetScore: 1760, startSpeed: 8.0, accel: 0.0023, spawn: 19, boss: false, biome: "ash", slippery: true },
+  { name: "Cinder Gale", targetScore: 1960, startSpeed: 8.2, accel: 0.0024, spawn: 17, boss: false, biome: "ash", slippery: true },
+  { name: "Boss: Thaw Colossus", targetScore: 2100, startSpeed: 8.3, accel: 0.0025, spawn: 16, boss: true, biome: "ash", slippery: true },
   { name: "Cloud Peaks", targetScore: 2200, startSpeed: 8.4, accel: 0.00255, spawn: 15, boss: false, biome: "sky", flying: true },
   { name: "Gust Valley", targetScore: 2320, startSpeed: 8.5, accel: 0.0026, spawn: 14, boss: false, biome: "sky", flying: true },
   { name: "Rain Squall", targetScore: 2560, startSpeed: 8.6, accel: 0.0027, spawn: 13, boss: false, biome: "storm", flying: true },
@@ -1353,6 +1353,18 @@ function isFrostStage() {
   return !endlessMode && currentStageConfig().slippery === true;
 }
 
+function isWorld3Stage() {
+  return !endlessMode && save.currentStage >= WORLD3_START && save.currentStage < WORLD4_START;
+}
+
+function isThawStage() {
+  return isWorld3Stage() && currentStageConfig().biome === "ash";
+}
+
+function isPureFrostStage() {
+  return isWorld3Stage() && currentStageConfig().biome === "frost";
+}
+
 function isSwimmingStage() {
   return !endlessMode && currentStageConfig().swimming === true;
 }
@@ -1416,6 +1428,10 @@ function applyStageWorldTransition(prevStage) {
 function frostSlipStrength() {
   if (!isFrostStage()) {
     return 0;
+  }
+  if (isThawStage()) {
+    const thawIndex = save.currentStage - (WORLD3_START + 4);
+    return Math.max(0.18, 0.52 - thawIndex * 0.09);
   }
   return Math.min(1, 0.28 + (save.currentStage - WORLD3_START) * 0.18);
 }
@@ -2088,6 +2104,54 @@ function flyingSpawnChance(stageIndex) {
   return Math.min(0.62, 0.32 + (stageIndex - WORLD4_START) * 0.035);
 }
 
+function spawnFrostObstacle() {
+  const roll = Math.random();
+  if (roll < 0.24) {
+    obstacles.push({ x: canvas.width + 20, y: groundY - 94, w: 40, h: 30, type: "high" });
+    if (Math.random() < 0.45) {
+      obstacles.push({ x: canvas.width + 66, y: groundY - 38, w: 28, h: 38, type: "low" });
+    }
+    return;
+  }
+  if (roll < 0.44) {
+    obstacles.push({ x: canvas.width + 20, y: groundY - 36, w: 32, h: 36, type: "low" });
+    obstacles.push({ x: canvas.width + 58, y: groundY - 88, w: 36, h: 28, type: "high" });
+    return;
+  }
+  if (roll < 0.62) {
+    obstacles.push({ x: canvas.width + 20, y: groundY - 70, w: 38, h: 70, type: "wall" });
+    return;
+  }
+  if (roll < 0.8) {
+    obstacles.push({ x: canvas.width + 20, y: groundY - 34, w: 30, h: 34, type: "low" });
+  } else {
+    obstacles.push({ x: canvas.width + 20, y: groundY - 86, w: 34, h: 24, type: "high" });
+  }
+}
+
+function spawnThawObstacle() {
+  const roll = Math.random();
+  if (roll < 0.26) {
+    obstacles.push({ x: canvas.width + 20, y: groundY - 72, w: 40, h: 72, type: "thaw_pillar" });
+    return;
+  }
+  if (roll < 0.46) {
+    obstacles.push({ x: canvas.width + 20, y: groundY - 34, w: 30, h: 34, type: "thaw_low" });
+    obstacles.push({ x: canvas.width + 58, y: groundY - 90, w: 36, h: 28, type: "high" });
+    return;
+  }
+  if (roll < 0.64) {
+    obstacles.push({ x: canvas.width + 20, y: groundY - 34, w: 30, h: 34, type: "low" });
+    obstacles.push({ x: canvas.width + 58, y: groundY - 86, w: 34, h: 24, type: "high" });
+    return;
+  }
+  if (roll < 0.82) {
+    obstacles.push({ x: canvas.width + 20, y: groundY - 66, w: 36, h: 66, type: "wall" });
+  } else {
+    obstacles.push({ x: canvas.width + 20, y: groundY - 38, w: 32, h: 38, type: "low" });
+  }
+}
+
 function spawnObstacle() {
   const stage = currentStageConfig();
   const roll = Math.random();
@@ -2131,6 +2195,14 @@ function spawnObstacle() {
         flying: true,
         phase: Math.random() * Math.PI * 2,
       });
+    } else if (isWorld3Stage() && stage.slippery) {
+      obstacles.push({
+        x: canvas.width + 20,
+        y: groundY - (stage.boss ? 88 : 80),
+        w: stage.boss ? 48 : 44,
+        h: stage.boss ? 88 : 80,
+        type: stage.boss ? "frost_titan" : "boss",
+      });
     } else {
       obstacles.push({
         x: canvas.width + 20,
@@ -2171,21 +2243,20 @@ function spawnObstacle() {
     return;
   }
 
+  if (isWorld3Stage()) {
+    if (isPureFrostStage()) {
+      spawnFrostObstacle();
+    } else {
+      spawnThawObstacle();
+    }
+    return;
+  }
+
   if (stageIndex >= WORLD4_START && roll < flyingSpawnChance(stageIndex)) {
     spawnFlyingObstacle(stageIndex);
     if (stageIndex >= WORLD4_START + 3 && Math.random() < 0.24) {
       obstacles.push({ x: canvas.width + 72, y: groundY - 34, w: 30, h: 34, type: "low" });
     }
-    return;
-  }
-  if (stageIndex >= WORLD3_START + 1 && roll < 0.1) {
-    obstacles.push({ x: canvas.width + 20, y: groundY - 34, w: 30, h: 34, type: "low" });
-    obstacles.push({ x: canvas.width + 58, y: groundY - 86, w: 34, h: 24, type: "high" });
-    return;
-  }
-  if (stageIndex >= WORLD3_START + 5 && roll < 0.18) {
-    obstacles.push({ x: canvas.width + 20, y: groundY - 62, w: 34, h: 62, type: "wall" });
-    obstacles.push({ x: canvas.width + 72, y: groundY - 34, w: 30, h: 34, type: "low" });
     return;
   }
   if (roll < 0.45) {
@@ -2348,6 +2419,8 @@ function update() {
     emitDust(player.x + 34, player.y + 18, false);
   } else if (player.grounded && !player.sliding && frame % 10 === 0) {
     emitDust(player.x + 6, groundY, false);
+  } else if (isFrostStage() && player.sliding && frame % 6 === 0) {
+    emitDust(player.x + player.w * 0.5, groundY, false);
   }
 
   if (!endlessMode && Math.floor(score - stageStartScore) >= stage.targetScore) {
@@ -2538,6 +2611,24 @@ function drawBackground() {
     }
   }
 
+  if (currentStageConfig().biome === "frost") {
+    const auroraGrad = ctx.createLinearGradient(0, 24, canvas.width, 120);
+    auroraGrad.addColorStop(0, "rgba(125, 211, 252, 0)");
+    auroraGrad.addColorStop(0.5, "rgba(186, 230, 253, 0.22)");
+    auroraGrad.addColorStop(1, "rgba(167, 139, 250, 0.12)");
+    ctx.fillStyle = auroraGrad;
+    ctx.fillRect(0, 20, canvas.width, 110);
+  }
+
+  if (isThawStage()) {
+    const steamGrad = ctx.createLinearGradient(0, 0, 0, groundY);
+    steamGrad.addColorStop(0, "rgba(68, 64, 60, 0.15)");
+    steamGrad.addColorStop(0.55, "rgba(127, 29, 29, 0.12)");
+    steamGrad.addColorStop(1, "rgba(251, 146, 60, 0.08)");
+    ctx.fillStyle = steamGrad;
+    ctx.fillRect(0, 0, canvas.width, groundY);
+  }
+
   const cloudOffset = (frame * 0.35) % (canvas.width + 120);
   ctx.fillStyle = palette.clouds;
   ctx.beginPath();
@@ -2572,6 +2663,8 @@ function drawBackground() {
   if (currentStageConfig().biome === "frost") {
     ctx.fillStyle = "rgba(255,255,255,0.12)";
     ctx.fillRect(0, groundY - 28, canvas.width, 32);
+    ctx.fillStyle = "rgba(186, 230, 253, 0.18)";
+    ctx.fillRect(0, groundY - 4, canvas.width, 8);
     ctx.strokeStyle = "rgba(186, 230, 253, 0.35)";
     ctx.lineWidth = 1;
     for (let i = 0; i < 8; i += 1) {
@@ -2580,6 +2673,26 @@ function drawBackground() {
       ctx.moveTo(crackX, groundY + 4);
       ctx.lineTo(crackX + 18, groundY + 10);
       ctx.lineTo(crackX + 8, groundY + 18);
+      ctx.stroke();
+    }
+  }
+
+  if (isThawStage()) {
+    ctx.fillStyle = "rgba(226, 232, 240, 0.14)";
+    ctx.fillRect(0, groundY - 18, canvas.width, 22);
+    ctx.fillStyle = "rgba(251, 146, 60, 0.22)";
+    for (let i = 0; i < 10; i += 1) {
+      const gx = (i * 149 + frame * 0.12) % (canvas.width + 60) - 30;
+      ctx.fillRect(gx, groundY + 2, 14, 3);
+    }
+    ctx.strokeStyle = "rgba(248, 113, 113, 0.35)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 6; i += 1) {
+      const cx = (i * 211 + frame * 0.05) % (canvas.width + 100) - 50;
+      ctx.beginPath();
+      ctx.moveTo(cx, groundY + 6);
+      ctx.lineTo(cx + 22, groundY + 12);
+      ctx.lineTo(cx + 10, groundY + 20);
       ctx.stroke();
     }
   }
@@ -2630,20 +2743,68 @@ function drawFireEffects() {
 }
 
 function drawFrostEffects() {
-  if (currentStageConfig().biome !== "frost") {
+  if (!isPureFrostStage()) {
     return;
   }
 
   ctx.fillStyle = "rgba(255,255,255,0.85)";
-  for (let i = 0; i < 40; i += 1) {
-    const drift = 0.35 + (i % 5) * 0.1;
+  for (let i = 0; i < 48; i += 1) {
+    const drift = 0.35 + (i % 5) * 0.12;
     const sx = (i * 71 + frame * drift) % (canvas.width + 24) - 12;
     const sy = (i * 47 + frame * (0.55 + (i % 4) * 0.14)) % (groundY + 16);
-    const size = i % 4 === 0 ? 2.4 : 1.4;
+    const size = i % 4 === 0 ? 2.6 : 1.5;
     ctx.beginPath();
     ctx.arc(sx, sy, size, 0, Math.PI * 2);
     ctx.fill();
   }
+}
+
+function drawThawEffects() {
+  if (!isThawStage()) {
+    return;
+  }
+
+  ctx.fillStyle = "rgba(255,255,255,0.55)";
+  for (let i = 0; i < 18; i += 1) {
+    const sx = (i * 89 + frame * 0.28) % (canvas.width + 20) - 10;
+    const sy = (i * 53 + frame * 0.42) % (groundY * 0.75);
+    ctx.beginPath();
+    ctx.arc(sx, sy, i % 3 === 0 ? 1.8 : 1.1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.fillStyle = "rgba(251, 146, 60, 0.55)";
+  for (let i = 0; i < 14; i += 1) {
+    const ex = (i * 97 + frame * (0.22 + (i % 3) * 0.06)) % (canvas.width + 16) - 8;
+    const ey = groundY - 24 - ((i * 37 + frame * 0.35) % (groundY * 0.45));
+    ctx.beginPath();
+    ctx.arc(ex, ey, i % 2 === 0 ? 2 : 1.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.fillStyle = "rgba(226, 232, 240, 0.22)";
+  for (let i = 0; i < 8; i += 1) {
+    const vx = (i * 163 + frame * 0.18) % (canvas.width + 40);
+    const vy = groundY - 40 - (i * 29) % 60;
+    ctx.beginPath();
+    ctx.ellipse(vx, vy, 18, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawIceSkidTrail() {
+  if (!isFrostStage() || !player.sliding || state !== "playing") {
+    return;
+  }
+  ctx.strokeStyle = "rgba(186, 230, 253, 0.45)";
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(player.x - 8, groundY + 1);
+  ctx.lineTo(player.x + player.w + 18, groundY + 1);
+  ctx.stroke();
+  ctx.fillStyle = "rgba(224, 242, 254, 0.25)";
+  ctx.fillRect(player.x - 4, groundY - 1, player.w + 22, 4);
 }
 
 function drawPlayer() {
@@ -2928,16 +3089,29 @@ function drawAquaticObstacle(obs) {
   ctx.stroke();
 }
 
-function drawFrostObstacle(obs) {
-  const isTall = obs.type === "wall" || obs.type === "boss";
-  const isBoss = obs.type === "boss";
-
-  ctx.fillStyle = "rgba(15, 23, 42, 0.16)";
+function drawIceObstacleShadow(obs) {
+  ctx.fillStyle = "rgba(15, 23, 42, 0.48)";
   ctx.beginPath();
-  ctx.ellipse(obs.x + obs.w * 0.5, groundY + 2, obs.w * 0.62, 4, 0, 0, Math.PI * 2);
+  ctx.ellipse(obs.x + obs.w * 0.5, groundY + 4, obs.w * 0.74, 7, 0, 0, Math.PI * 2);
   ctx.fill();
+}
+
+function drawFrostObstacle(obs) {
+  const isTall = obs.type === "wall" || obs.type === "boss" || obs.type === "frost_titan";
+  const isBoss = obs.type === "boss" || obs.type === "frost_titan";
+  const isTitan = obs.type === "frost_titan";
+
+  drawIceObstacleShadow(obs);
 
   if (obs.type === "high") {
+    ctx.fillStyle = "rgba(30, 58, 95, 0.72)";
+    ctx.beginPath();
+    ctx.moveTo(obs.x + 2, obs.y + 4);
+    ctx.lineTo(obs.x + obs.w - 2, obs.y + 4);
+    ctx.lineTo(obs.x + obs.w * 0.5, obs.y + obs.h + 8);
+    ctx.closePath();
+    ctx.fill();
+
     const icicleCount = 3;
     for (let i = 0; i < icicleCount; i += 1) {
       const ix = obs.x + 4 + i * (obs.w / icicleCount);
@@ -2945,8 +3119,9 @@ function drawFrostObstacle(obs) {
       const ih = obs.h + (i === 1 ? 6 : 0);
       const grad = ctx.createLinearGradient(ix, obs.y, ix, obs.y + ih);
       grad.addColorStop(0, "#e0f2fe");
-      grad.addColorStop(0.55, "#7dd3fc");
-      grad.addColorStop(1, "#38bdf8");
+      grad.addColorStop(0.35, "#38bdf8");
+      grad.addColorStop(0.75, "#0284c7");
+      grad.addColorStop(1, "#075985");
       ctx.fillStyle = grad;
       ctx.beginPath();
       ctx.moveTo(ix, obs.y);
@@ -2954,36 +3129,58 @@ function drawFrostObstacle(obs) {
       ctx.lineTo(ix + iw * 0.5, obs.y + ih);
       ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = "rgba(186, 230, 253, 0.65)";
+      ctx.strokeStyle = "#0c4a6e";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(224, 242, 254, 0.85)";
       ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(ix + 2, obs.y + 2);
+      ctx.lineTo(ix + 2, obs.y + ih * 0.55);
       ctx.stroke();
     }
     return;
   }
 
+  ctx.fillStyle = "rgba(30, 58, 95, 0.55)";
+  if (isTall) {
+    ctx.beginPath();
+    ctx.ellipse(obs.x + obs.w * 0.5, obs.y + obs.h * 0.56, obs.w * 0.56, obs.h * 0.52, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.fillRect(obs.x - 1, obs.y + 1, obs.w + 2, obs.h + 2);
+  }
+
   const bodyGrad = ctx.createLinearGradient(obs.x, obs.y, obs.x, obs.y + obs.h);
   if (isBoss) {
-    bodyGrad.addColorStop(0, "#dbeafe");
-    bodyGrad.addColorStop(0.5, "#93c5fd");
-    bodyGrad.addColorStop(1, "#64748b");
+    bodyGrad.addColorStop(0, "#bae6fd");
+    bodyGrad.addColorStop(0.45, "#38bdf8");
+    bodyGrad.addColorStop(1, "#475569");
   } else if (isTall) {
-    bodyGrad.addColorStop(0, "#f8fafc");
-    bodyGrad.addColorStop(0.45, "#cbd5e1");
-    bodyGrad.addColorStop(1, "#94a3b8");
-  } else {
     bodyGrad.addColorStop(0, "#e2e8f0");
-    bodyGrad.addColorStop(1, "#94a3b8");
+    bodyGrad.addColorStop(0.4, "#64748b");
+    bodyGrad.addColorStop(1, "#334155");
+  } else {
+    bodyGrad.addColorStop(0, "#cbd5e1");
+    bodyGrad.addColorStop(0.55, "#64748b");
+    bodyGrad.addColorStop(1, "#334155");
   }
   ctx.fillStyle = bodyGrad;
   if (isTall) {
     ctx.beginPath();
     ctx.ellipse(obs.x + obs.w * 0.5, obs.y + obs.h * 0.55, obs.w * 0.52, obs.h * 0.48, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
   } else {
     ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(obs.x + 0.5, obs.y + 0.5, obs.w - 1, obs.h - 1);
   }
 
-  ctx.strokeStyle = "rgba(186, 230, 253, 0.55)";
+  ctx.strokeStyle = "rgba(224, 242, 254, 0.7)";
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.moveTo(obs.x + 4, obs.y + 4);
@@ -2997,6 +3194,89 @@ function drawFrostObstacle(obs) {
     ctx.fillRect(obs.x + obs.w * 0.6, obs.y + 14, 5, 5);
     ctx.fillStyle = "#bae6fd";
     ctx.fillRect(obs.x + obs.w * 0.28, obs.y + 28, obs.w * 0.44, 8);
+    if (isTitan) {
+      ctx.fillStyle = "#e0f2fe";
+      ctx.beginPath();
+      ctx.moveTo(obs.x + obs.w * 0.22, obs.y + 6);
+      ctx.lineTo(obs.x + obs.w * 0.3, obs.y - 14);
+      ctx.lineTo(obs.x + obs.w * 0.38, obs.y + 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(obs.x + obs.w * 0.62, obs.y + 4);
+      ctx.lineTo(obs.x + obs.w * 0.7, obs.y - 16);
+      ctx.lineTo(obs.x + obs.w * 0.78, obs.y + 6);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+}
+
+function drawThawObstacle(obs) {
+  const isTall = obs.type === "wall" || obs.type === "thaw_pillar" || obs.type === "boss" || obs.type === "frost_titan";
+  const isBoss = obs.type === "boss" || obs.type === "frost_titan";
+
+  if (obs.type === "high") {
+    drawFrostObstacle(obs);
+    ctx.fillStyle = "rgba(234, 88, 12, 0.65)";
+    ctx.fillRect(obs.x + 1, obs.y + obs.h - 5, obs.w - 2, 5);
+    ctx.strokeStyle = "#7c2d12";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(obs.x + 0.5, obs.y + obs.h - 5.5, obs.w - 1, 5);
+    return;
+  }
+
+  drawIceObstacleShadow(obs);
+
+  ctx.fillStyle = "rgba(30, 41, 59, 0.6)";
+  if (isTall) {
+    ctx.beginPath();
+    ctx.ellipse(obs.x + obs.w * 0.5, obs.y + obs.h * 0.56, obs.w * 0.56, obs.h * 0.52, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.fillRect(obs.x - 1, obs.y + 1, obs.w + 2, obs.h + 2);
+  }
+
+  const bodyGrad = ctx.createLinearGradient(obs.x, obs.y, obs.x, obs.y + obs.h);
+  bodyGrad.addColorStop(0, "#e2e8f0");
+  bodyGrad.addColorStop(0.3, "#94a3b8");
+  bodyGrad.addColorStop(0.65, "#57534e");
+  bodyGrad.addColorStop(1, "#292524");
+  ctx.fillStyle = bodyGrad;
+  if (isTall) {
+    ctx.beginPath();
+    ctx.ellipse(obs.x + obs.w * 0.5, obs.y + obs.h * 0.55, obs.w * 0.52, obs.h * 0.48, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+  } else {
+    ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(obs.x + 0.5, obs.y + 0.5, obs.w - 1, obs.h - 1);
+  }
+
+  ctx.strokeStyle = "rgba(251, 146, 60, 0.85)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(obs.x + 5, obs.y + 8);
+  ctx.lineTo(obs.x + obs.w * 0.45, obs.y + obs.h * 0.42);
+  ctx.lineTo(obs.x + obs.w - 6, obs.y + obs.h - 6);
+  ctx.stroke();
+
+  ctx.fillStyle = "rgba(234, 88, 12, 0.75)";
+  ctx.fillRect(obs.x + 3, obs.y + obs.h - 7, obs.w - 6, 6);
+  ctx.strokeStyle = "#7c2d12";
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(obs.x + 3.5, obs.y + obs.h - 7.5, obs.w - 7, 6);
+
+  if (isBoss) {
+    ctx.fillStyle = "#292524";
+    ctx.fillRect(obs.x + obs.w * 0.34, obs.y + 16, 6, 6);
+    ctx.fillRect(obs.x + obs.w * 0.58, obs.y + 16, 6, 6);
+    ctx.fillStyle = "rgba(249, 115, 22, 0.75)";
+    ctx.fillRect(obs.x + obs.w * 0.26, obs.y + 30, obs.w * 0.48, 10);
   }
 }
 
@@ -3091,7 +3371,8 @@ function drawVolcanicObstacle(obs) {
 }
 
 function drawObstacles() {
-  const frost = currentStageConfig().biome === "frost";
+  const frost = isPureFrostStage();
+  const thaw = isThawStage();
   obstacles.forEach((obs) => {
     if (obs.type?.startsWith("fire_") || obs.volcanic) {
       drawVolcanicObstacle(obs);
@@ -3103,6 +3384,11 @@ function drawObstacles() {
     }
     if (obs.flying) {
       drawFlyingObstacle(obs);
+      return;
+    }
+
+    if (thaw) {
+      drawThawObstacle(obs);
       return;
     }
 
@@ -3241,11 +3527,11 @@ function drawOverlay() {
       ctx.fillText("World 3", canvas.width / 2, canvas.height / 2 - 72);
       ctx.font = `24px ${FONT_TITLE}`;
       ctx.fillStyle = "#f8fafc";
-      ctx.fillText("Frozen Lands", canvas.width / 2, canvas.height / 2 - 36);
+      ctx.fillText("Frozen Frontier", canvas.width / 2, canvas.height / 2 - 36);
       ctx.font = `16px ${FONT_UI}`;
       ctx.fillStyle = "#cbd5e1";
-      ctx.fillText("Ice makes landings slippery.", canvas.width / 2, canvas.height / 2 + 4);
-      ctx.fillText("Slides last longer — time your jumps.", canvas.width / 2, canvas.height / 2 + 30);
+      ctx.fillText("Hard landings send you sliding on ice.", canvas.width / 2, canvas.height / 2 + 4);
+      ctx.fillText("Later stages thaw — less grip, more steam.", canvas.width / 2, canvas.height / 2 + 30);
       ctx.fillStyle = "#7dd3fc";
     } else if (activeWorldIntro === 2) {
       ctx.fillStyle = "#7dd3fc";
@@ -3299,12 +3585,14 @@ function loop() {
   update();
   drawBackground();
   drawFrostEffects();
+  drawThawEffects();
   drawWaterEffects();
   drawFireEffects();
   drawObstacles();
   drawCoins();
   drawPowerups();
   drawDustParticles();
+  drawIceSkidTrail();
   drawPlayer();
   drawOverlay();
   requestAnimationFrame(loop);
