@@ -57,6 +57,15 @@ const WORLD3_START = STAGES_PER_WORLD * 2 + 1;
 const WORLD4_START = STAGES_PER_WORLD * 3 + 1;
 const WORLD5_START = STAGES_PER_WORLD * 4 + 1;
 
+// Same bg-loop track; per-world speed / warmth (lowshelf dB) / depth (lowpass Hz).
+const WORLD_AUDIO_PROFILES = [
+  { speed: 1.0, warmth: 0, depth: 20000 },
+  { speed: 0.86, warmth: -3.5, depth: 850 },
+  { speed: 0.9, warmth: -5, depth: 5200 },
+  { speed: 1.05, warmth: -2, depth: 16500 },
+  { speed: 1.08, warmth: 5, depth: 11500 },
+];
+
 const STAGES = [
   { name: "Sunny Trail", targetScore: 90, startSpeed: 3.0, accel: 0.00065, spawn: 80, boss: false, biome: "grass" },
   { name: "Rock Dust", targetScore: 150, startSpeed: 3.6, accel: 0.00085, spawn: 72, boss: false, biome: "desert" },
@@ -539,44 +548,244 @@ let overlayShownAt = 0;
 let pointerOverlayEpoch = null;
 let musicEnabled = localStorage.getItem(musicPrefKey) !== "false";
 let musicUnlocked = false;
+let musicContext = null;
+let musicBuffer = null;
+let musicBufferLoading = null;
+let musicBufferSource = null;
+let musicDepthFilter = null;
+let musicWarmthFilter = null;
+let musicGainNode = null;
+let musicWebAudioActive = false;
+let activeMusicWorldId = null;
 
-function startMusicPlayback() {
-  if (!bgMusic || !musicEnabled || state !== "playing" || document.hidden) {
+function musicWorldForStage() {
+  if (endlessMode) {
+    return 5;
+  }
+  if (save.currentStage >= WORLD5_START) {
+    return 5;
+  }
+  if (save.currentStage >= WORLD4_START) {
+    return 4;
+  }
+  if (save.currentStage >= WORLD3_START) {
+    return 3;
+  }
+  if (save.currentStage >= WORLD2_START) {
+    return 2;
+  }
+  return 1;
+}
+
+function ensureMusicContext() {
+  if (musicContext) {
+    return musicContext;
+  }
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) {
+    return null;
+  }
+  musicContext = new AudioCtx();
+  musicDepthFilter = musicContext.createBiquadFilter();
+  musicDepthFilter.type = "lowpass";
+  musicDepthFilter.Q.value = 0.7;
+  musicWarmthFilter = musicContext.createBiquadFilter();
+  musicWarmthFilter.type = "lowshelf";
+  musicWarmthFilter.frequency.value = 320;
+  musicGainNode = musicContext.createGain();
+  musicGainNode.gain.value = 0;
+  musicDepthFilter.connect(musicWarmthFilter);
+  musicWarmthFilter.connect(musicGainNode);
+  musicGainNode.connect(musicContext.destination);
+  return musicContext;
+}
+
+function resumeMusicContextSync() {
+  if (musicContext?.state === "suspended") {
+    void musicContext.resume();
+  }
+}
+
+async function loadMusicBuffer() {
+  if (musicBuffer) {
+    return musicBuffer;
+  }
+  if (musicBufferLoading) {
+    return musicBufferLoading;
+  }
+  const ctx = ensureMusicContext();
+  if (!ctx || !bgMusic) {
+    return null;
+  }
+  musicBufferLoading = (async () => {
+    const src = bgMusic.currentSrc || bgMusic.src;
+    const response = await fetch(src);
+    if (!response.ok) {
+      throw new Error("music fetch failed");
+    }
+    const data = await response.arrayBuffer();
+    musicBuffer = await ctx.decodeAudioData(data);
+    return musicBuffer;
+  })();
+  try {
+    return await musicBufferLoading;
+  } catch {
+    musicBufferLoading = null;
+    return null;
+  }
+}
+
+function stopWebAudioPlayback() {
+  if (musicBufferSource) {
+    try {
+      musicBufferSource.stop();
+    } catch {
+      // Already stopped.
+    }
+    musicBufferSource.disconnect();
+    musicBufferSource = null;
+  }
+  musicWebAudioActive = false;
+}
+
+function stopHtmlAudioPlayback() {
+  if (!bgMusic) {
     return;
   }
-  applyMusicSettings();
+  bgMusic.pause();
+}
+
+function pauseMusic() {
+  stopWebAudioPlayback();
+  if (musicGainNode) {
+    musicGainNode.gain.value = 0;
+  }
+  stopHtmlAudioPlayback();
+}
+
+function setAudioParam(param, value, smooth = true) {
+  if (!param) {
+    return;
+  }
+  if (!musicContext || !smooth) {
+    param.value = value;
+    return;
+  }
+  const now = musicContext.currentTime;
+  param.cancelScheduledValues(now);
+  param.setTargetAtTime(value, now, 0.12);
+}
+
+function syncWorldAudioProfile(force = false) {
+  const worldId = musicWorldForStage();
+  if (!force && worldId === activeMusicWorldId) {
+    return;
+  }
+  const profile = WORLD_AUDIO_PROFILES[worldId - 1];
+  if (!profile) {
+    return;
+  }
+  if (musicBufferSource) {
+    setAudioParam(musicBufferSource.playbackRate, profile.speed);
+  }
+  if (bgMusic) {
+    bgMusic.playbackRate = profile.speed;
+  }
+  if (musicDepthFilter && musicWarmthFilter) {
+    setAudioParam(musicDepthFilter.frequency, profile.depth);
+    setAudioParam(musicWarmthFilter.gain, profile.warmth);
+  }
+  activeMusicWorldId = worldId;
+}
+
+function startWebAudioPlayback() {
+  if (!musicContext || !musicBuffer || !musicEnabled) {
+    return false;
+  }
+  stopWebAudioPlayback();
+  stopHtmlAudioPlayback();
+  const profile = WORLD_AUDIO_PROFILES[musicWorldForStage() - 1];
+  if (!profile) {
+    return false;
+  }
+  musicBufferSource = musicContext.createBufferSource();
+  musicBufferSource.buffer = musicBuffer;
+  musicBufferSource.loop = true;
+  musicBufferSource.playbackRate.value = profile.speed;
+  musicBufferSource.connect(musicDepthFilter);
+  musicBufferSource.start(0);
+  musicWebAudioActive = true;
+  activeMusicWorldId = null;
+  syncWorldAudioProfile(true);
+  if (musicGainNode) {
+    musicGainNode.gain.value = 0.35;
+  }
+  return true;
+}
+
+function startHtmlAudioPlayback() {
+  if (!bgMusic || !musicEnabled) {
+    return;
+  }
+  stopWebAudioPlayback();
+  syncWorldAudioProfile(true);
+  bgMusic.volume = 0.35;
+  bgMusic.muted = false;
   const playAttempt = bgMusic.play();
   if (playAttempt !== undefined) {
     playAttempt.catch(() => {});
   }
 }
 
+async function enhanceWithWebAudioIfReady() {
+  ensureMusicContext();
+  if (!musicContext) {
+    return;
+  }
+  if (musicContext.state === "suspended") {
+    try {
+      await musicContext.resume();
+    } catch {
+      return;
+    }
+  }
+  const buffer = await loadMusicBuffer();
+  if (!musicContext || musicContext.state !== "running" || !buffer) {
+    return;
+  }
+  if (!musicEnabled || state !== "playing" || document.hidden) {
+    return;
+  }
+  startWebAudioPlayback();
+}
+
+function startMusicPlayback() {
+  if (!musicEnabled || state !== "playing" || document.hidden) {
+    return;
+  }
+  syncWorldAudioProfile(true);
+  startHtmlAudioPlayback();
+  void enhanceWithWebAudioIfReady();
+}
+
 function unlockMusicFromGesture() {
-  if (!bgMusic || !musicEnabled || musicUnlocked) {
+  if (!musicEnabled || musicUnlocked) {
     return;
   }
-  applyMusicSettings();
-  const playAttempt = bgMusic.play();
-  if (playAttempt === undefined) {
-    musicUnlocked = true;
-    return;
-  }
-  playAttempt
-    .then(() => {
-      musicUnlocked = true;
-      if (state !== "playing") {
-        bgMusic.pause();
-        bgMusic.currentTime = 0;
-      } else {
-        startMusicPlayback();
-      }
-    })
-    .catch(() => {});
+  musicUnlocked = true;
+  ensureMusicContext();
+  resumeMusicContextSync();
+  void loadMusicBuffer();
 }
 
 function registerMusicGestureUnlock() {
   const onGesture = () => {
-    unlockMusicFromGesture();
+    ensureMusicContext();
+    resumeMusicContextSync();
+    if (!musicUnlocked) {
+      musicUnlocked = true;
+      void loadMusicBuffer();
+    }
     startMusicPlayback();
   };
   document.addEventListener("pointerdown", onGesture, { passive: true });
@@ -697,9 +906,7 @@ function hideExitAppOverlay() {
 
 async function exitApp() {
   closeGameMenu();
-  if (bgMusic) {
-    bgMusic.pause();
-  }
+  pauseMusic();
   sprinting = false;
 
   try {
@@ -1106,11 +1313,16 @@ scheduleAutoMobileFullscreen();
 registerMobileFullscreenFallback();
 
 function applyMusicSettings() {
+  if (musicGainNode) {
+    musicGainNode.gain.value = musicEnabled && musicWebAudioActive ? 0.35 : 0;
+  }
   if (!bgMusic) {
     return;
   }
-  bgMusic.volume = 0.35;
   bgMusic.muted = !musicEnabled;
+  if (!musicEnabled) {
+    stopHtmlAudioPlayback();
+  }
 }
 
 function ensureMusicPlayback() {
@@ -1125,8 +1337,8 @@ function toggleMusic() {
   if (musicEnabled) {
     unlockMusicFromGesture();
     startMusicPlayback();
-  } else if (bgMusic) {
-    bgMusic.pause();
+  } else {
+    pauseMusic();
   }
 }
 
@@ -1492,8 +1704,8 @@ function setState(nextState) {
   if (playing) {
     closeGameMenu();
     ensureMusicPlayback();
-  } else if (bgMusic) {
-    bgMusic.pause();
+  } else {
+    pauseMusic();
   }
 
   updateMenuAlert();
@@ -1573,6 +1785,7 @@ function startRun() {
   reviveUsed = false;
   resetPlayerPosition();
   resetHeatPulse();
+  syncWorldAudioProfile(true);
   beginWorldIntroIfNeeded();
   updateHud();
 }
@@ -3360,11 +3573,8 @@ if (gameShell && typeof ResizeObserver !== "undefined") {
 }
 
 document.addEventListener("visibilitychange", () => {
-  if (!bgMusic) {
-    return;
-  }
   if (document.hidden) {
-    bgMusic.pause();
+    pauseMusic();
   } else {
     ensureMusicPlayback();
   }
