@@ -7,6 +7,7 @@ const bestScoreEl = document.getElementById("best-score");
 const bankCoinsEl = document.getElementById("bank-coins");
 const levelEl = document.getElementById("level");
 const missionEl = document.getElementById("mission");
+const runSpeedEl = document.getElementById("run-speed");
 
 const endlessBtn = document.getElementById("endless-btn");
 const campaignBtn = document.getElementById("campaign-btn");
@@ -1871,6 +1872,10 @@ function currentHitbox() {
   return { x: player.x + 2, y: player.y, w: player.w, h: player.h };
 }
 
+function currentRunSpeed() {
+  return speed + (state === "playing" && sprinting ? 1.8 : 0);
+}
+
 function updateHud() {
   const stage = currentStageConfig();
   const scoreNow = Math.floor(score);
@@ -1887,6 +1892,12 @@ function updateHud() {
     const goal = stageTargetScore();
     const capped = Math.min(stageProgress, goal);
     missionEl.textContent = `${stage.name} · ${capped}/${goal}`;
+  }
+  if (runSpeedEl) {
+    const speedCap = endlessMode ? ENDLESS_MAX_SPEED : CAMPAIGN_MAX_SPEED;
+    const speedNow = currentRunSpeed();
+    runSpeedEl.textContent = `${speedNow.toFixed(1)}/${speedCap.toFixed(1)}`;
+    runSpeedEl.parentElement.title = sprinting && state === "playing" ? "Run speed (sprinting)" : "Run speed";
   }
   if (upgradeJumpMeta) {
     upgradeJumpMeta.textContent = String(jumpUpgradeCost());
