@@ -2143,12 +2143,7 @@ function startRun(options = {}) {
 function advanceToNextStage() {
   const stage = currentStageConfig();
   stageStartScore = score;
-  if (!endlessMode && WORLD_INTRO_BY_ENTRY_STAGE[save.currentStage]) {
-    speed = stage.startSpeed;
-  } else {
-    speed = Math.max(speed, stage.startSpeed);
-  }
-  speed = clampCampaignSpeed(speed);
+  speed = clampCampaignSpeed(Math.max(speed, stage.startSpeed));
   player.shieldTimer = Math.max(player.shieldTimer, STAGE_CLEAR_SHIELD_FRAMES);
   syncWorldAudioProfile(true);
   setState("playing");
