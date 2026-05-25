@@ -22,7 +22,7 @@
       href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Russo+One&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./style.css?v=no-canvas-select" />
+    <link rel="stylesheet" href="./style.css?v=hud-icons" />
   </head>
   <body>
     <main class="game-shell">
@@ -31,18 +31,49 @@
           <header class="hud">
             <div class="hud-title">
               <h1>Runner Rush</h1>
-              <p class="subtitle">Arcade endless runner</p>
             </div>
-            <div class="stats">
-              <span id="score">Score: 0</span>
-              <span id="coins-run">Run Coins: 0</span>
-              <span id="best-score">Best: 0</span>
-              <span id="bank-coins">Bank: 0</span>
-            </div>
+            <ul class="stats">
+              <li class="hud-stat hud-stat-score" title="Score">
+                <svg class="hud-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">
+                  <path d="M13 2 3 14h8l-1 8 10-12h-8l1-8z" />
+                </svg>
+                <span id="score">0</span>
+              </li>
+              <li class="hud-stat hud-stat-coins" title="Run coins">
+                <svg class="hud-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z" />
+                </svg>
+                <span id="coins-run">0</span>
+              </li>
+              <li class="hud-stat hud-stat-best" title="Best score">
+                <svg class="hud-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">
+                  <path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.006 5.006 0 0 0 11 16.9V19H8v2h8v-2h-3v-2.1a5.006 5.006 0 0 0 3.61-3.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zm-1 3c0 1.66-1.34 3-3 3s-3-1.34-3-3V7h6v1z" />
+                </svg>
+                <span id="best-score">0</span>
+              </li>
+              <li class="hud-stat hud-stat-bank" title="Bank">
+                <svg class="hud-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">
+                  <path d="M4 10v7h3v-7H4zm6 0v7h3v-7h-3zM2 22h19v-3H2v3zm14-12v7h3v-7h-3zm-7-5-7 4v2h20v-2l-7-4-3 2-3-2z" />
+                </svg>
+                <span id="bank-coins">0</span>
+              </li>
+            </ul>
           </header>
           <section class="meta-panel">
-            <span id="level">Level: 1</span>
-            <span id="mission">Mission: Collect 20 coins (0/20)</span>
+            <span class="hud-meta-item" title="Stage">
+              <svg class="hud-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">
+                <path d="M14 6l-3.75 5 2.75 3.5-1.6 1.2L7 11l3-4h4zm-4 12H5v-2h5v2zm7 0h-5v-2h5v2zM5 8V6h14v2H5z" />
+              </svg>
+              <span id="level">1/40</span>
+            </span>
+            <span class="hud-meta-item hud-meta-goal" title="Goal">
+              <svg class="hud-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <circle cx="12" cy="12" r="4" />
+                <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+              </svg>
+              <span id="mission">Sunny Trail · 0/90</span>
+            </span>
           </section>
         </div>
         <div class="canvas-stage">

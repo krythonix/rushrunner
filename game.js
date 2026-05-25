@@ -1220,16 +1220,17 @@ function updateHud() {
   const stage = currentStageConfig();
   const scoreNow = Math.floor(score);
   const stageProgress = endlessMode ? endlessRunScore() : Math.max(0, Math.floor(score - stageStartScore));
-  scoreEl.textContent = `Score: ${scoreNow}`;
-  coinsRunEl.textContent = `Run Coins: ${runCoins}`;
-  bestScoreEl.textContent = `Best: ${save.bestScore}`;
-  bankCoinsEl.textContent = `Bank: ${save.bankCoins}`;
+  scoreEl.textContent = String(scoreNow);
+  coinsRunEl.textContent = String(runCoins);
+  bestScoreEl.textContent = String(save.bestScore);
+  bankCoinsEl.textContent = String(save.bankCoins);
   if (endlessMode) {
-    levelEl.textContent = "Mode: Endless";
-    missionEl.textContent = `Survive! Run ${stageProgress} · Best ${save.endlessBest}`;
+    levelEl.textContent = "∞";
+    missionEl.textContent = `${stageProgress} · best ${save.endlessBest}`;
   } else {
-    levelEl.textContent = `Stage: ${save.currentStage}/${STAGES.length}`;
-    missionEl.textContent = `Goal: ${stage.name} (${Math.min(stageProgress, stage.targetScore)}/${stage.targetScore})`;
+    levelEl.textContent = `${save.currentStage}/${STAGES.length}`;
+    const capped = Math.min(stageProgress, stage.targetScore);
+    missionEl.textContent = `${stage.name} · ${capped}/${stage.targetScore}`;
   }
   if (upgradeJumpMeta) {
     upgradeJumpMeta.textContent = String(jumpUpgradeCost());

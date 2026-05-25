@@ -48,8 +48,8 @@ body {
 }
 
 .hud h1 {
-  margin: 0 0 4px;
-  font-size: 1.3rem;
+  margin: 0;
+  font-size: 1.15rem;
   font-family: "Press Start 2P", monospace;
   line-height: 1.4;
   letter-spacing: 0;
@@ -59,23 +59,73 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   gap: 12px;
-}
-
-.subtitle {
-  margin: 0;
-  opacity: 0.85;
-  font-size: 0.86rem;
 }
 
 .stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 10px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
   font-weight: 400;
   justify-content: flex-end;
-  font-size: 0.86rem;
+  font-size: 0.88rem;
+}
+
+.hud-stat,
+.hud-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.hud-icon {
+  flex-shrink: 0;
+  opacity: 0.82;
+}
+
+.hud-stat span,
+.hud-meta-item span:last-child {
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.hud-stat-score .hud-icon {
+  color: #7dd3fc;
+}
+
+.hud-stat-coins .hud-icon,
+.hud-stat-bank .hud-icon {
+  color: #fcd34d;
+}
+
+.hud-stat-coins span,
+.hud-stat-bank span {
+  color: #fde68a;
+}
+
+.hud-stat-best .hud-icon {
+  color: #c4b5fd;
+}
+
+.hud-meta-item .hud-icon {
+  color: #94a3b8;
+}
+
+.hud-meta-goal {
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.hud-meta-goal span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .score-panel {
@@ -94,7 +144,8 @@ body {
   align-items: center;
   gap: 10px;
   font-weight: 400;
-  font-size: 0.92rem;
+  font-size: 0.84rem;
+  color: #cbd5e1;
 }
 
 .canvas-wrap {
@@ -1072,7 +1123,16 @@ html:-webkit-full-screen .game-shell.is-fullscreen.canvas-only-fs {
       justify-content: flex-start;
       flex-wrap: wrap;
       font-size: 0.78rem;
-      gap: 4px 8px;
+      gap: 4px 10px;
+    }
+
+    .score-panel .hud-stat-best {
+      display: none;
+    }
+
+    .score-panel .hud-stat-coins span,
+    .score-panel .hud-stat-bank span {
+      color: #fde68a;
     }
 
     .score-panel .meta-panel {
@@ -1083,7 +1143,6 @@ html:-webkit-full-screen .game-shell.is-fullscreen.canvas-only-fs {
       gap: 6px 10px;
     }
   }
-}
 
 @media (orientation: landscape) and (max-height: 900px) {
   .game-shell.is-fullscreen {
@@ -1173,6 +1232,10 @@ html:-webkit-full-screen .game-shell.is-fullscreen.canvas-only-fs {
       color: #f8fafc;
     }
 
+    .score-panel .hud-stat-best {
+      display: none;
+    }
+
     .score-panel .meta-panel {
       flex-direction: row;
       align-items: center;
@@ -1236,11 +1299,7 @@ html:-webkit-full-screen .game-shell.is-fullscreen.canvas-only-fs {
 
 @media (max-width: 640px) and (orientation: portrait) {
   .hud h1 {
-    font-size: 1.1rem;
-  }
-
-  .subtitle {
-    font-size: 0.8rem;
+    font-size: 1rem;
   }
 
   #game-canvas {
