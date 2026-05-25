@@ -66,30 +66,30 @@ const STAGES = [
   { name: "Storm Flats", targetScore: 365, startSpeed: 4.9, accel: 0.00125, spawn: 53, boss: false, biome: "storm" },
   { name: "Night Canyons", targetScore: 420, startSpeed: 5.1, accel: 0.0013, spawn: 50, boss: false, biome: "night" },
   { name: "Final Boss: Cactus King", targetScore: 480, startSpeed: 5.4, accel: 0.0014, spawn: 46, boss: true, biome: "night" },
-  { name: "Frozen Tundra", targetScore: 540, startSpeed: 5.6, accel: 0.00145, spawn: 44, boss: false, biome: "frost", slippery: true },
-  { name: "Ice Ravine", targetScore: 600, startSpeed: 5.8, accel: 0.0015, spawn: 42, boss: false, biome: "frost", slippery: true },
-  { name: "Glacier Pass", targetScore: 660, startSpeed: 6.0, accel: 0.00155, spawn: 40, boss: false, biome: "frost", slippery: true },
-  { name: "Boss: Frost Titan", targetScore: 790, startSpeed: 6.3, accel: 0.00165, spawn: 36, boss: true, biome: "frost", slippery: true },
-  { name: "Ember Wastes", targetScore: 860, startSpeed: 6.5, accel: 0.0017, spawn: 34, boss: false, biome: "ash" },
-  { name: "Magma Fields", targetScore: 930, startSpeed: 6.7, accel: 0.00175, spawn: 32, boss: false, biome: "ash" },
-  { name: "Ash Storm", targetScore: 1000, startSpeed: 6.9, accel: 0.0018, spawn: 30, boss: false, biome: "ash" },
-  { name: "Final Boss: Inferno Lord", targetScore: 1180, startSpeed: 7.3, accel: 0.00195, spawn: 26, boss: true, biome: "ash" },
-  { name: "Cloud Peaks", targetScore: 1250, startSpeed: 7.4, accel: 0.002, spawn: 25, boss: false, biome: "sky", flying: true },
-  { name: "Gust Valley", targetScore: 1320, startSpeed: 7.5, accel: 0.00205, spawn: 24, boss: false, biome: "sky", flying: true },
-  { name: "Rain Squall", targetScore: 1400, startSpeed: 7.6, accel: 0.0021, spawn: 23, boss: false, biome: "storm", flying: true },
-  { name: "Boss: Storm Hawk", targetScore: 1570, startSpeed: 7.8, accel: 0.0022, spawn: 21, boss: true, biome: "storm", flying: true },
-  { name: "Aurora Drift", targetScore: 1660, startSpeed: 7.9, accel: 0.00225, spawn: 20, boss: false, biome: "aurora", flying: true },
-  { name: "Moonlit Skyway", targetScore: 1760, startSpeed: 8.0, accel: 0.0023, spawn: 19, boss: false, biome: "aurora", flying: true },
-  { name: "Void Horizon", targetScore: 1960, startSpeed: 8.2, accel: 0.0024, spawn: 17, boss: false, biome: "void", flying: true },
-  { name: "Final Boss: Sky Serpent", targetScore: 2100, startSpeed: 8.3, accel: 0.0025, spawn: 16, boss: true, biome: "void", flying: true },
-  { name: "Shallow Shores", targetScore: 2200, startSpeed: 8.4, accel: 0.00255, spawn: 15, boss: false, biome: "ocean", swimming: true },
-  { name: "Coral Gardens", targetScore: 2320, startSpeed: 8.5, accel: 0.0026, spawn: 14, boss: false, biome: "reef", swimming: true },
-  { name: "Kelp Forest", targetScore: 2560, startSpeed: 8.6, accel: 0.0027, spawn: 13, boss: false, biome: "reef", swimming: true },
-  { name: "Boss: Kraken's Gate", targetScore: 2680, startSpeed: 8.65, accel: 0.00275, spawn: 13, boss: true, biome: "deep", swimming: true },
-  { name: "Sunken Ruins", targetScore: 2800, startSpeed: 8.7, accel: 0.0028, spawn: 12, boss: false, biome: "deep", swimming: true },
-  { name: "Glow Caverns", targetScore: 2920, startSpeed: 8.75, accel: 0.00285, spawn: 12, boss: false, biome: "abyss", swimming: true },
-  { name: "Mariana Sprint", targetScore: 3160, startSpeed: 8.85, accel: 0.00295, spawn: 11, boss: false, biome: "abyss", swimming: true },
-  { name: "Final Boss: Leviathan", targetScore: 3300, startSpeed: 8.9, accel: 0.00305, spawn: 10, boss: true, biome: "abyss", swimming: true },
+  { name: "Shallow Shores", targetScore: 540, startSpeed: 5.6, accel: 0.00145, spawn: 44, boss: false, biome: "ocean", swimming: true },
+  { name: "Coral Gardens", targetScore: 600, startSpeed: 5.8, accel: 0.0015, spawn: 42, boss: false, biome: "reef", swimming: true },
+  { name: "Kelp Forest", targetScore: 660, startSpeed: 6.0, accel: 0.00155, spawn: 40, boss: false, biome: "reef", swimming: true },
+  { name: "Boss: Kraken's Gate", targetScore: 790, startSpeed: 6.3, accel: 0.00165, spawn: 36, boss: true, biome: "deep", swimming: true },
+  { name: "Sunken Ruins", targetScore: 860, startSpeed: 6.5, accel: 0.0017, spawn: 34, boss: false, biome: "deep", swimming: true },
+  { name: "Glow Caverns", targetScore: 930, startSpeed: 6.7, accel: 0.00175, spawn: 32, boss: false, biome: "abyss", swimming: true },
+  { name: "Mariana Sprint", targetScore: 1000, startSpeed: 6.9, accel: 0.0018, spawn: 30, boss: false, biome: "abyss", swimming: true },
+  { name: "Final Boss: Leviathan", targetScore: 1180, startSpeed: 7.3, accel: 0.00195, spawn: 26, boss: true, biome: "abyss", swimming: true },
+  { name: "Frozen Tundra", targetScore: 1250, startSpeed: 7.4, accel: 0.002, spawn: 25, boss: false, biome: "frost", slippery: true },
+  { name: "Ice Ravine", targetScore: 1320, startSpeed: 7.5, accel: 0.00205, spawn: 24, boss: false, biome: "frost", slippery: true },
+  { name: "Glacier Pass", targetScore: 1400, startSpeed: 7.6, accel: 0.0021, spawn: 23, boss: false, biome: "frost", slippery: true },
+  { name: "Boss: Frost Titan", targetScore: 1570, startSpeed: 7.8, accel: 0.0022, spawn: 21, boss: true, biome: "frost", slippery: true },
+  { name: "Ember Wastes", targetScore: 1660, startSpeed: 7.9, accel: 0.00225, spawn: 20, boss: false, biome: "ash" },
+  { name: "Magma Fields", targetScore: 1760, startSpeed: 8.0, accel: 0.0023, spawn: 19, boss: false, biome: "ash" },
+  { name: "Ash Storm", targetScore: 1960, startSpeed: 8.2, accel: 0.0024, spawn: 17, boss: false, biome: "ash" },
+  { name: "Final Boss: Inferno Lord", targetScore: 2100, startSpeed: 8.3, accel: 0.0025, spawn: 16, boss: true, biome: "ash" },
+  { name: "Cloud Peaks", targetScore: 2200, startSpeed: 8.4, accel: 0.00255, spawn: 15, boss: false, biome: "sky", flying: true },
+  { name: "Gust Valley", targetScore: 2320, startSpeed: 8.5, accel: 0.0026, spawn: 14, boss: false, biome: "sky", flying: true },
+  { name: "Rain Squall", targetScore: 2560, startSpeed: 8.6, accel: 0.0027, spawn: 13, boss: false, biome: "storm", flying: true },
+  { name: "Boss: Storm Hawk", targetScore: 2680, startSpeed: 8.65, accel: 0.00275, spawn: 13, boss: true, biome: "storm", flying: true },
+  { name: "Aurora Drift", targetScore: 2800, startSpeed: 8.7, accel: 0.0028, spawn: 12, boss: false, biome: "aurora", flying: true },
+  { name: "Moonlit Skyway", targetScore: 2920, startSpeed: 8.75, accel: 0.00285, spawn: 12, boss: false, biome: "aurora", flying: true },
+  { name: "Void Horizon", targetScore: 3160, startSpeed: 8.85, accel: 0.00295, spawn: 11, boss: false, biome: "void", flying: true },
+  { name: "Final Boss: Sky Serpent", targetScore: 3300, startSpeed: 8.9, accel: 0.00305, spawn: 10, boss: true, biome: "void", flying: true },
   { name: "Cinder Trail", targetScore: 3420, startSpeed: 9.0, accel: 0.0031, spawn: 10, boss: false, biome: "lava", volcanic: true },
   { name: "Geyser Fields", targetScore: 3660, startSpeed: 9.1, accel: 0.0032, spawn: 9, boss: false, biome: "volcanic", volcanic: true },
   { name: "Ashfall Ridge", targetScore: 3780, startSpeed: 9.15, accel: 0.00325, spawn: 8, boss: false, biome: "ember", volcanic: true },
@@ -262,9 +262,9 @@ const BIOME_PALETTES = {
 /**
  * Dev preview URLs (local testing only):
  *   ?worldintro=2|3|4|5     — show that world intro immediately on load
- *   ?postgame=world2      — start at stage 9 (World 2), intro on Play
- *   ?postgame=world3      — start at stage 17 (World 3)
- *   ?postgame=world4      — start at stage 25 (World 4)
+ *   ?postgame=world2      — start at stage 9 (World 2: water)
+ *   ?postgame=world3      — start at stage 17 (World 3: frost)
+ *   ?postgame=world4      — start at stage 25 (World 4: sky)
  *   ?postgame=world5      — start at stage 33 (World 5)
  *   ?postgame=N           — start at stage N (1–40)
  *   ?postgame=final       — last stage
@@ -312,6 +312,14 @@ save.endlessUnlocked = !!save.endlessUnlocked;
 save.endlessBest = Math.max(0, save.endlessBest || 0);
 
 const STAGE_LAYOUT_MIGRATION_KEY = "runner_rush_stage_layout_v8";
+const WORLD_ORDER_MIGRATION_KEY = "runner_rush_world_order_water_w2";
+
+if (localStorage.getItem(WORLD_ORDER_MIGRATION_KEY) !== "1") {
+  localStorage.removeItem(world2IntroKey);
+  localStorage.removeItem(world3IntroKey);
+  localStorage.removeItem(world4IntroKey);
+  localStorage.setItem(WORLD_ORDER_MIGRATION_KEY, "1");
+}
 
 function mapOldStageToNew(oldStage) {
   if (oldStage <= STAGES_PER_WORLD) {
@@ -1197,7 +1205,7 @@ function frostSlipStrength() {
   if (!isFrostStage()) {
     return 0;
   }
-  return Math.min(1, 0.28 + (save.currentStage - WORLD2_START) * 0.18);
+  return Math.min(1, 0.28 + (save.currentStage - WORLD3_START) * 0.18);
 }
 
 function getPendingWorldIntro() {
@@ -1858,13 +1866,13 @@ function spawnVolcanicObstacle(stageIndex) {
 }
 
 function flyingSpawnChance(stageIndex) {
-  if (stageIndex < WORLD3_START) {
+  if (stageIndex < WORLD4_START) {
     return 0;
   }
   if (endlessMode) {
     return 0.44;
   }
-  return Math.min(0.62, 0.32 + (stageIndex - WORLD3_START) * 0.035);
+  return Math.min(0.62, 0.32 + (stageIndex - WORLD4_START) * 0.035);
 }
 
 function spawnObstacle() {
@@ -1893,9 +1901,9 @@ function spawnObstacle() {
         x: canvas.width + 20,
         y: baseY,
         baseY,
-        w: stageIndex >= STAGES_PER_WORLD * 4 ? 60 : 52,
+        w: stageIndex >= STAGES_PER_WORLD * 2 ? 60 : 52,
         h,
-        type: stageIndex >= STAGES_PER_WORLD * 4 ? "swim_leviathan" : "swim_boss",
+        type: stageIndex >= STAGES_PER_WORLD * 2 ? "swim_leviathan" : "swim_boss",
         aquatic: true,
         phase: Math.random() * Math.PI * 2,
       });
@@ -1904,8 +1912,8 @@ function spawnObstacle() {
         x: canvas.width + 20,
         y: groundY - 92,
         baseY: groundY - 92,
-        w: stageIndex >= STAGES_PER_WORLD * 3 ? 58 : 52,
-        h: stageIndex >= STAGES_PER_WORLD * 3 ? 36 : 40,
+        w: stageIndex >= STAGES_PER_WORLD * 4 ? 58 : 52,
+        h: stageIndex >= STAGES_PER_WORLD * 4 ? 36 : 40,
         type: "fly_boss",
         flying: true,
         phase: Math.random() * Math.PI * 2,
@@ -1938,7 +1946,7 @@ function spawnObstacle() {
 
   if (stage.swimming) {
     spawnAquaticObstacle(stageIndex);
-    if (stageIndex >= STAGES_PER_WORLD * 3 + 3 && Math.random() < 0.22) {
+    if (stageIndex >= WORLD2_START + 5 && Math.random() < 0.22) {
       obstacles.push({
         x: canvas.width + 72,
         y: randomWaterY(28),
@@ -1950,19 +1958,19 @@ function spawnObstacle() {
     return;
   }
 
-  if (stageIndex >= WORLD3_START && roll < flyingSpawnChance(stageIndex)) {
+  if (stageIndex >= WORLD4_START && roll < flyingSpawnChance(stageIndex)) {
     spawnFlyingObstacle(stageIndex);
-    if (stageIndex >= WORLD3_START + 3 && Math.random() < 0.24) {
+    if (stageIndex >= WORLD4_START + 3 && Math.random() < 0.24) {
       obstacles.push({ x: canvas.width + 72, y: groundY - 34, w: 30, h: 34, type: "low" });
     }
     return;
   }
-  if (stageIndex >= WORLD2_START + 1 && roll < 0.1) {
+  if (stageIndex >= WORLD3_START + 1 && roll < 0.1) {
     obstacles.push({ x: canvas.width + 20, y: groundY - 34, w: 30, h: 34, type: "low" });
     obstacles.push({ x: canvas.width + 58, y: groundY - 86, w: 34, h: 24, type: "high" });
     return;
   }
-  if (stageIndex >= WORLD2_START + 5 && roll < 0.18) {
+  if (stageIndex >= WORLD3_START + 5 && roll < 0.18) {
     obstacles.push({ x: canvas.width + 20, y: groundY - 62, w: 34, h: 62, type: "wall" });
     obstacles.push({ x: canvas.width + 72, y: groundY - 34, w: 30, h: 34, type: "low" });
     return;
@@ -2561,7 +2569,7 @@ function drawFlyingObstacle(obs) {
     return;
   }
 
-  if (obs.type === "fly_serpent" || (obs.type === "fly_boss" && save.currentStage >= STAGES_PER_WORLD * 3)) {
+  if (obs.type === "fly_serpent" || (obs.type === "fly_boss" && save.currentStage >= STAGES_PER_WORLD * 4)) {
     ctx.strokeStyle = obs.type === "fly_boss" ? "#818cf8" : "#6366f1";
     ctx.lineWidth = obs.type === "fly_boss" ? 8 : 6;
     ctx.lineCap = "round";
@@ -3005,19 +3013,8 @@ function drawOverlay() {
       ctx.fillText("Watch for the glow at your feet.", canvas.width / 2, canvas.height / 2 + 30);
       ctx.fillStyle = "#f97316";
     } else if (activeWorldIntro === 4) {
-      ctx.fillStyle = "#7dd3fc";
-      ctx.fillText("World 4", canvas.width / 2, canvas.height / 2 - 72);
-      ctx.font = `24px ${FONT_TITLE}`;
-      ctx.fillStyle = "#f8fafc";
-      ctx.fillText("Ocean Depths", canvas.width / 2, canvas.height / 2 - 36);
-      ctx.font = `16px ${FONT_UI}`;
-      ctx.fillStyle = "#cbd5e1";
-      ctx.fillText("Tap top to swim up, bottom to dive.", canvas.width / 2, canvas.height / 2 + 4);
-      ctx.fillText("Dodge coral, kelp, and sea creatures.", canvas.width / 2, canvas.height / 2 + 30);
-      ctx.fillStyle = "#38bdf8";
-    } else if (activeWorldIntro === 3) {
       ctx.fillStyle = "#c4b5fd";
-      ctx.fillText("World 3", canvas.width / 2, canvas.height / 2 - 72);
+      ctx.fillText("World 4", canvas.width / 2, canvas.height / 2 - 72);
       ctx.font = `24px ${FONT_TITLE}`;
       ctx.fillStyle = "#f8fafc";
       ctx.fillText("Sky Realm", canvas.width / 2, canvas.height / 2 - 36);
@@ -3026,9 +3023,9 @@ function drawOverlay() {
       ctx.fillText("You're in the air — bats, hawks, and drones ahead.", canvas.width / 2, canvas.height / 2 + 4);
       ctx.fillText("Jump and slide to dodge aerial obstacles.", canvas.width / 2, canvas.height / 2 + 30);
       ctx.fillStyle = "#a78bfa";
-    } else if (activeWorldIntro === 2) {
+    } else if (activeWorldIntro === 3) {
       ctx.fillStyle = "#bae6fd";
-      ctx.fillText("World 2", canvas.width / 2, canvas.height / 2 - 72);
+      ctx.fillText("World 3", canvas.width / 2, canvas.height / 2 - 72);
       ctx.font = `24px ${FONT_TITLE}`;
       ctx.fillStyle = "#f8fafc";
       ctx.fillText("Frozen Lands", canvas.width / 2, canvas.height / 2 - 36);
@@ -3037,6 +3034,17 @@ function drawOverlay() {
       ctx.fillText("Ice makes landings slippery.", canvas.width / 2, canvas.height / 2 + 4);
       ctx.fillText("Slides last longer — time your jumps.", canvas.width / 2, canvas.height / 2 + 30);
       ctx.fillStyle = "#7dd3fc";
+    } else if (activeWorldIntro === 2) {
+      ctx.fillStyle = "#7dd3fc";
+      ctx.fillText("World 2", canvas.width / 2, canvas.height / 2 - 72);
+      ctx.font = `24px ${FONT_TITLE}`;
+      ctx.fillStyle = "#f8fafc";
+      ctx.fillText("Ocean Depths", canvas.width / 2, canvas.height / 2 - 36);
+      ctx.font = `16px ${FONT_UI}`;
+      ctx.fillStyle = "#cbd5e1";
+      ctx.fillText("Tap top to swim up, bottom to dive.", canvas.width / 2, canvas.height / 2 + 4);
+      ctx.fillText("Dodge coral, kelp, and sea creatures.", canvas.width / 2, canvas.height / 2 + 30);
+      ctx.fillStyle = "#38bdf8";
     }
     drawOverlayContinueButton();
   } else if (state === "menu") {
