@@ -79,7 +79,8 @@ body {
 }
 
 .score-panel {
-  width: min(100%, calc(76vh * 16 / 9));
+  flex-shrink: 0;
+  width: 100%;
   margin-bottom: 10px;
 }
 
@@ -106,9 +107,15 @@ body {
 
 .canvas-stage {
   position: relative;
-  width: min(100%, calc(76vh * 16 / 9));
+  flex: none;
+  align-self: center;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 160px;
+  min-height: 90px;
   aspect-ratio: 16 / 9;
-  max-height: 76vh;
   touch-action: none;
   overflow: visible;
   z-index: 1;
@@ -124,124 +131,336 @@ body {
   touch-action: none;
 }
 
-#fullscreen-btn {
+.canvas-float-btn {
   position: absolute;
-  right: 10px;
+  left: 10px;
   bottom: 10px;
   z-index: 10;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
-  color: #f8fafc;
+  width: 40px;
+  height: 40px;
   padding: 8px;
   line-height: 0;
   min-height: auto;
-  width: auto;
   border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #f8fafc;
   box-shadow: none;
   touch-action: manipulation;
+  cursor: pointer;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.75));
 }
 
-#fullscreen-btn:hover,
-#fullscreen-btn:active {
+.canvas-float-btn-right {
+  left: auto;
+  right: 10px;
+}
+
+@media (max-width: 900px), (orientation: landscape) and (max-height: 500px) {
+  #fullscreen-btn {
+    display: none;
+  }
+}
+
+.canvas-float-btn:hover,
+.canvas-float-btn:active {
   background: transparent;
   opacity: 0.85;
 }
 
-.controls {
-  margin-top: 14px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+#menu-toggle-btn.has-alert {
+  filter: drop-shadow(0 0 6px rgba(251, 113, 133, 0.85));
 }
 
-button {
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10020;
+  background: rgba(2, 6, 23, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.menu-backdrop[hidden] {
+  display: none;
+}
+
+html.force-landscape-active .menu-backdrop:not([hidden]) {
+  inset: auto;
+  top: 50%;
+  left: 50%;
+  width: calc(100dvh - var(--safe-top) - var(--safe-bottom));
+  height: calc(100dvw - var(--safe-left) - var(--safe-right));
+  transform: translate(-50%, -50%) rotate(90deg);
+  transform-origin: center center;
+}
+
+body.pseudo-fullscreen-active .game-menu,
+body.pseudo-fullscreen-active .game-menu-scroll,
+body.pseudo-fullscreen-active .menu-backdrop:not([hidden]) {
+  touch-action: pan-x pan-y;
+}
+
+.game-menu-orient,
+.game-menu-scroll {
+  display: contents;
+}
+
+.game-menu {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  z-index: 10030;
+  width: min(100%, 420px);
+  max-height: min(85dvh, 640px);
+  overflow: auto;
+  padding:
+    0
+    max(16px, var(--safe-right))
+    max(16px, var(--safe-bottom))
+    max(16px, var(--safe-left));
+  border-radius: 20px 20px 0 0;
+  background: #0f172a;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-bottom: 0;
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.45);
+  transform: translate(-50%, 100%);
+  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.game-menu.open {
+  transform: translate(-50%, 0);
+}
+
+html.force-landscape-active .game-menu {
+  top: 50%;
+  left: 50%;
+  right: auto;
+  bottom: auto;
+  width: calc(100dvh - var(--safe-top) - var(--safe-bottom));
+  height: calc(100dvw - var(--safe-left) - var(--safe-right));
+  max-height: none;
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  border-radius: 0;
+  transform: translate(-50%, -50%) rotate(90deg) translateY(100%);
+  transform-origin: center center;
+}
+
+html.force-landscape-active .game-menu.open {
+  transform: translate(-50%, -50%) rotate(90deg) translateY(0);
+}
+
+html.force-landscape-active .game-menu-orient {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: #0f172a;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.45);
+  padding:
+    0
+    max(16px, var(--safe-right))
+    max(16px, var(--safe-bottom))
+    max(16px, var(--safe-left));
+  overflow: hidden;
+}
+
+html.force-landscape-active .game-menu-scroll {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+}
+
+html.force-landscape-active .game-menu-nav,
+html.force-landscape-active .game-menu-shop {
+  display: contents;
+}
+
+html.force-landscape-active .game-menu-section-title,
+html.force-landscape-active .menu-item {
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: calc(100dvw - var(--safe-left) - var(--safe-right) - 32px);
+  box-sizing: border-box;
+}
+
+html.force-landscape-active .game-menu-hint {
+  display: none;
+}
+
+html.force-landscape-active .menu-item {
+  min-height: 44px;
+  padding: 8px 10px;
+  font-size: 0.84rem;
+}
+
+html.force-landscape-active .game-menu-header {
+  padding: 12px 4px 10px;
+  flex-shrink: 0;
+  background: #0f172a;
+}
+
+.game-menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 4px 12px;
+  position: sticky;
+  top: 0;
+  background: #0f172a;
+  z-index: 1;
+}
+
+.game-menu-title {
+  margin: 0;
+  font-family: "Russo One", Impact, sans-serif;
+  font-size: 1.1rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+.menu-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
   border: 0;
   border-radius: 10px;
-  padding: 12px 16px;
-  font-size: 1rem;
+  background: rgba(148, 163, 184, 0.12);
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+.game-menu-nav,
+.game-menu-shop {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.game-menu-shop {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.game-menu-section-title {
+  margin: 0 4px 8px;
+  font-size: 0.72rem;
   font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(30, 41, 59, 0.65);
+  color: #f1f5f9;
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-align: left;
   cursor: pointer;
   touch-action: manipulation;
 }
 
-#jump-btn {
-  background: #f59e0b;
-  color: #111827;
+.menu-item:hover:not(:disabled) {
+  background: rgba(51, 65, 85, 0.85);
 }
 
-#slide-btn {
-  background: #38bdf8;
-  color: #082f49;
+.menu-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
-#start-btn {
-  background: #22c55e;
-  color: #052e16;
+.menu-item-accent:not(:disabled) {
+  background: rgba(190, 24, 93, 0.18);
+  color: #fecdd3;
 }
 
-#endless-btn {
-  background: #8b5cf6;
-  color: #2e1065;
+.menu-item-endless:not(:disabled) {
+  background: rgba(139, 92, 246, 0.18);
+  color: #ede9fe;
 }
 
-#endless-btn[hidden] {
+.menu-item-endless[hidden],
+.menu-item-campaign[hidden] {
   display: none;
 }
 
-#restart-btn {
-  background: #10b981;
-  color: #052e2b;
+.menu-item-campaign:not(:disabled) {
+  background: rgba(16, 185, 129, 0.16);
+  color: #d1fae5;
 }
 
-#restart-stage-zero-btn {
-  background: #f97316;
-  color: #431407;
+.menu-item-danger {
+  color: #fecaca;
 }
 
-#reset-everything-btn {
-  background: #ef4444;
-  color: #450a0a;
+.menu-item-icon {
+  flex-shrink: 0;
+  opacity: 0.92;
 }
 
-#revive-btn {
-  background: #fb7185;
-  color: #4c0519;
+.menu-item-label {
+  flex: 1;
 }
 
-#music-toggle-btn {
-  background: #a78bfa;
-  color: #2e1065;
+.menu-item-meta {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.game-menu-hint {
+  margin: 16px 4px 8px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+#music-toggle-btn.is-muted .menu-icon-music-on {
+  display: none;
+}
+
+#music-toggle-btn.is-muted .menu-icon-music-off {
+  display: block;
+}
+
+#music-toggle-btn:not(.is-muted) .menu-icon-music-off {
+  display: none;
 }
 
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.shop {
-  margin-top: 16px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(226, 232, 240, 0.35);
-}
-
-.shop h2 {
-  margin: 0 0 10px;
-  font-size: 1rem;
-}
-
-.shop-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.instructions {
-  margin: 10px 0 0;
-  opacity: 0.9;
-  font-size: 0.9rem;
 }
 
 .install-banner {
@@ -295,6 +514,10 @@ button:disabled {
   min-height: 44px;
   padding: 10px 12px;
   font-size: 0.92rem;
+  border: 0;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 #install-app-btn {
@@ -391,17 +614,48 @@ html:fullscreen .game-shell.is-fullscreen.canvas-only-fs .canvas-wrap.force-land
   z-index: 10000;
 }
 
+.game-shell.is-fullscreen.canvas-only-fs .canvas-wrap.force-landscape .canvas-stage {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+}
+
+.game-shell.is-fullscreen.canvas-only-fs .canvas-wrap.force-landscape #game-canvas {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 0;
+}
+
+.game-shell.is-fullscreen.canvas-only-fs .canvas-wrap.force-landscape .score-panel {
+  width: 100%;
+  max-width: none;
+}
+
+.game-shell.is-fullscreen.canvas-only-fs .canvas-float-btn {
+  position: fixed;
+  z-index: 10001;
+}
+
+.game-shell.is-fullscreen.canvas-only-fs #menu-toggle-btn {
+  left: max(10px, var(--safe-left));
+  bottom: max(10px, var(--safe-bottom));
+  right: auto;
+}
+
+.game-shell.is-fullscreen.canvas-only-fs .canvas-wrap.force-landscape #menu-toggle-btn {
+  left: auto;
+  right: max(10px, var(--safe-right));
+  bottom: max(10px, var(--safe-bottom));
+  top: auto;
+}
+
 .game-shell.is-fullscreen.canvas-only-fs {
   position: relative;
   overflow: hidden;
   padding: 0;
   background: #0f172a;
-}
-
-.game-shell.is-fullscreen.canvas-only-fs .controls,
-.game-shell.is-fullscreen.canvas-only-fs .shop,
-.game-shell.is-fullscreen.canvas-only-fs .instructions {
-  display: none !important;
 }
 
 .game-shell.is-fullscreen.canvas-only-fs .canvas-wrap {
@@ -578,11 +832,6 @@ html:-webkit-full-screen .game-shell.is-fullscreen.canvas-only-fs {
   flex: none;
 }
 
-.game-shell.is-fullscreen .shop,
-.game-shell.is-fullscreen .instructions {
-  display: none;
-}
-
 /* Desktop fullscreen: compact HUD overlay on canvas, keep controls below */
 .game-shell.is-fullscreen:not(.canvas-only-fs) {
   padding: 10px 12px;
@@ -650,104 +899,105 @@ html:-webkit-full-screen .game-shell.is-fullscreen.canvas-only-fs {
   color: #f8fafc;
 }
 
-.game-shell.is-fullscreen:not(.canvas-only-fs) .controls {
-  flex-shrink: 0;
-  position: relative;
-  z-index: 5;
-  margin-top: 0;
-}
-
-@media (max-width: 900px) and (orientation: portrait) {
-  body {
-    display: block;
-    padding:
-      max(4px, var(--safe-top))
-      max(4px, var(--safe-right))
-      max(4px, var(--safe-bottom))
-      max(4px, var(--safe-left));
-  }
-
-  .game-shell {
+  .game-shell.is-fullscreen {
     width: 100%;
+    max-width: 100%;
+    min-height: calc(
+      100dvh - max(4px, var(--safe-top)) - max(4px, var(--safe-bottom))
+    );
+    border-radius: 0;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
   }
 
-  .canvas-wrap {
+  .game-shell.is-fullscreen .canvas-wrap {
+    flex: 1;
+    min-height: 0;
     display: grid;
     place-items: center;
     width: 100%;
     overflow: visible;
-    padding-top: 12px;
+    padding-top: 0;
   }
 
-  .canvas-stage {
+  .game-shell.is-fullscreen .canvas-stage {
     grid-area: 1 / 1;
     position: relative;
     z-index: 1;
-    width: 100%;
+    flex: none;
+    width: auto;
+    height: auto;
     max-width: 100%;
-    max-height: min(56dvh, calc(100vw * 9 / 16));
+    max-height: 100%;
+    min-width: 160px;
+    min-height: 90px;
     aspect-ratio: 16 / 9;
   }
 
-  .score-panel {
-    grid-area: 1 / 1;
-    position: relative;
-    align-self: start;
-    justify-self: center;
-    width: 100%;
-    max-width: 100%;
-    margin-bottom: 0;
-    padding: 8px max(10px, var(--safe-right)) 8px max(10px, var(--safe-left));
-    pointer-events: none;
-    z-index: 4;
-    color: #f8fafc;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
-  }
+  @media (max-width: 900px) {
+    .canvas-wrap {
+      display: grid;
+      place-items: center;
+      width: 100%;
+      overflow: visible;
+    }
 
-  .score-panel .stats,
-  .score-panel .meta-panel {
-    color: #f8fafc;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
-  }
+    .canvas-stage {
+      grid-area: 1 / 1;
+    }
 
-  .score-panel .hud-title {
-    display: none;
-  }
+    .score-panel {
+      grid-area: 1 / 1;
+      position: relative;
+      align-self: start;
+      justify-self: center;
+      width: 100%;
+      max-width: 100%;
+      margin-bottom: 0;
+      padding: 8px max(10px, var(--safe-right)) 8px max(10px, var(--safe-left));
+      pointer-events: none;
+      z-index: 4;
+      color: #f8fafc;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+    }
 
-  .score-panel .hud {
-    flex-direction: row;
-    align-items: center;
-    margin-bottom: 2px;
-    gap: 4px;
-  }
+    .score-panel .stats,
+    .score-panel .meta-panel {
+      color: #f8fafc;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+    }
 
-  .score-panel .stats {
-    justify-content: flex-start;
-    flex-wrap: wrap;
-    font-size: 0.78rem;
-    gap: 4px 8px;
-  }
+    .score-panel .hud-title {
+      display: none;
+    }
 
-  .score-panel .meta-panel {
-    flex-direction: row;
-    align-items: center;
-    flex-wrap: wrap;
-    font-size: 0.76rem;
-    gap: 6px 10px;
+    .score-panel .hud {
+      flex-direction: row;
+      align-items: center;
+      margin-bottom: 2px;
+      gap: 4px;
+    }
+
+    .score-panel .stats {
+      justify-content: flex-start;
+      flex-wrap: wrap;
+      font-size: 0.78rem;
+      gap: 4px 8px;
+    }
+
+    .score-panel .meta-panel {
+      flex-direction: row;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 0.76rem;
+      gap: 6px 10px;
+    }
   }
 }
 
 @media (orientation: landscape) and (max-height: 900px) {
-  body {
-    display: block;
-    padding:
-      max(4px, var(--safe-top))
-      max(4px, var(--safe-right))
-      max(4px, var(--safe-bottom))
-      max(4px, var(--safe-left));
-  }
-
-  .game-shell {
+  .game-shell.is-fullscreen {
     width: 100%;
     min-height: auto;
     height: calc(100dvh - max(4px, var(--safe-top)) - max(4px, var(--safe-bottom)));
@@ -758,7 +1008,7 @@ html:-webkit-full-screen .game-shell.is-fullscreen.canvas-only-fs {
     overflow: hidden;
   }
 
-  .canvas-wrap {
+  .game-shell.is-fullscreen .canvas-wrap {
     flex: 1;
     min-height: 0;
     width: 100%;
@@ -767,61 +1017,80 @@ html:-webkit-full-screen .game-shell.is-fullscreen.canvas-only-fs {
     overflow: visible;
   }
 
-  .canvas-stage {
+  .game-shell.is-fullscreen .canvas-stage {
     grid-area: 1 / 1;
     position: relative;
     z-index: 1;
     width: auto;
-    height: 100%;
-    max-height: 100%;
+    height: auto;
     max-width: 100%;
+    max-height: 100%;
+    min-width: 160px;
+    min-height: 90px;
     aspect-ratio: 16 / 9;
   }
 
-  .score-panel {
-    grid-area: 1 / 1;
-    position: relative;
-    align-self: start;
-    justify-self: center;
-    width: 100%;
-    max-width: 100%;
-    margin-bottom: 0;
-    padding: 6px;
-    pointer-events: none;
-    z-index: 4;
-    color: #f8fafc;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
-  }
+  @media (max-width: 900px) {
+    .canvas-wrap {
+      display: grid;
+      place-items: center;
+      width: 100%;
+      overflow: visible;
+    }
 
-  .score-panel .hud-title {
-    display: none;
-  }
+    .canvas-stage {
+      grid-area: 1 / 1;
+      position: relative;
+      z-index: 1;
+      width: auto;
+      height: auto;
+      max-width: 100%;
+      max-height: 100%;
+      min-width: 160px;
+      min-height: 90px;
+      aspect-ratio: 16 / 9;
+    }
 
-  .score-panel .hud {
-    flex-direction: row;
-    align-items: center;
-    margin-bottom: 2px;
-    gap: 4px;
-  }
+    .score-panel {
+      grid-area: 1 / 1;
+      position: relative;
+      align-self: start;
+      justify-self: center;
+      width: 100%;
+      max-width: 100%;
+      margin-bottom: 0;
+      padding: 6px;
+      pointer-events: none;
+      z-index: 4;
+      color: #f8fafc;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+    }
 
-  .score-panel .stats {
-    font-size: 0.92rem;
-    gap: 6px 10px;
-    justify-content: flex-start;
-    color: #f8fafc;
-  }
+    .score-panel .hud-title {
+      display: none;
+    }
 
-  .score-panel .meta-panel {
-    flex-direction: row;
-    align-items: center;
-    font-size: 0.88rem;
-    gap: 10px;
-    color: #f8fafc;
-  }
+    .score-panel .hud {
+      flex-direction: row;
+      align-items: center;
+      margin-bottom: 2px;
+      gap: 4px;
+    }
 
-  .controls {
-    flex-shrink: 0;
-    margin-top: 6px;
+    .score-panel .stats {
+      font-size: 0.92rem;
+      gap: 6px 10px;
+      justify-content: flex-start;
+      color: #f8fafc;
+    }
+
+    .score-panel .meta-panel {
+      flex-direction: row;
+      align-items: center;
+      font-size: 0.88rem;
+      gap: 10px;
+      color: #f8fafc;
+    }
   }
 }
 
@@ -869,34 +1138,6 @@ html:-webkit-full-screen .game-shell.is-fullscreen.canvas-only-fs {
     flex-shrink: 0;
   }
 
-  .game-shell:fullscreen .controls,
-  .game-shell:-webkit-full-screen .controls,
-  .game-shell.is-fullscreen .controls {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 8px;
-    margin-top: 8px;
-    flex-shrink: 0;
-  }
-
-  .game-shell:fullscreen .controls button,
-  .game-shell:-webkit-full-screen .controls button,
-  .game-shell.is-fullscreen .controls button {
-    flex: 1;
-    min-height: 48px;
-    padding: 8px;
-    font-size: 0.85rem;
-  }
-
-  .game-shell:fullscreen #restart-stage-zero-btn,
-  .game-shell:-webkit-full-screen #restart-stage-zero-btn,
-  .game-shell.is-fullscreen #restart-stage-zero-btn,
-  .game-shell:fullscreen #reset-everything-btn,
-  .game-shell:-webkit-full-screen #reset-everything-btn,
-  .game-shell.is-fullscreen #reset-everything-btn {
-    display: none;
-  }
-
   .meta-panel {
     flex-direction: column;
     align-items: flex-start;
@@ -905,22 +1146,6 @@ html:-webkit-full-screen .game-shell.is-fullscreen.canvas-only-fs {
 }
 
 @media (max-width: 640px) and (orientation: portrait) {
-  body {
-    display: block;
-    padding:
-      max(4px, var(--safe-top))
-      max(4px, var(--safe-right))
-      max(4px, var(--safe-bottom))
-      max(4px, var(--safe-left));
-  }
-
-  .game-shell {
-    width: 100%;
-    min-height: auto;
-    border-radius: 12px;
-    padding: 8px;
-  }
-
   .hud h1 {
     font-size: 1.1rem;
   }
@@ -933,101 +1158,34 @@ html:-webkit-full-screen .game-shell.is-fullscreen.canvas-only-fs {
     border-radius: 10px;
   }
 
-  .canvas-stage {
-    width: 100%;
-    max-width: 100%;
-    max-height: min(56dvh, calc(100vw * 9 / 16));
-    aspect-ratio: 16 / 9;
+  .canvas-float-btn {
+    left: 8px;
+    bottom: 8px;
+    width: 38px;
+    height: 38px;
+    padding: 7px;
   }
 
-  #fullscreen-btn {
+  .canvas-float-btn-right {
+    left: auto;
     right: 8px;
-    bottom: 8px;
-    padding: 10px;
-    width: auto;
-    min-height: auto;
-    min-width: 40px;
-    min-height: 40px;
   }
 }
 
 @media (max-width: 640px) {
-  .controls,
-  .shop-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  button {
-    width: 100%;
-    min-height: 56px;
-    padding: 10px 10px;
-    font-size: 1rem;
-  }
-
-  #start-btn {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    width: min(78%, 280px);
-    justify-self: center;
-  }
-
-  #jump-btn {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  #slide-btn {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  #restart-btn {
-    grid-column: 1;
-    grid-row: 3;
-  }
-
-  #restart-stage-zero-btn {
-    grid-column: 2;
-    grid-row: 3;
-  }
-
-  #reset-everything-btn {
-    grid-column: 1 / -1;
-    grid-row: 4;
-    width: min(78%, 280px);
-    justify-self: center;
-  }
-
-  #revive-btn {
-    grid-column: 1;
-    grid-row: 5;
-  }
-
-  #music-toggle-btn {
-    grid-column: 2;
-    grid-row: 5;
-  }
-
-  #start-btn,
-  #music-toggle-btn {
-    width: min(70%, 260px);
-    justify-self: center;
-  }
-
-  .instructions {
-    font-size: 0.75rem;
-    line-height: 1.35;
+  .canvas-float-btn {
+    width: 36px;
+    height: 36px;
+    padding: 6px;
   }
 }
 
 @media (display-mode: standalone), (display-mode: fullscreen) {
-  body {
-    display: block;
+  .game-shell:not(.is-fullscreen) {
+    width: min(97vw, 1080px);
   }
 
-  .game-shell {
+  .game-shell.is-fullscreen {
     width: 100%;
     max-width: 100%;
   }

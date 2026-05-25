@@ -22,7 +22,7 @@
       href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Russo+One&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./style.css?v=ecaed7e" />
+    <link rel="stylesheet" href="./style.css?v=menu-orient2" />
   </head>
   <body>
     <main class="game-shell">
@@ -47,32 +47,101 @@
         </div>
         <div class="canvas-stage">
           <canvas id="game-canvas" width="960" height="540"></canvas>
-          <button id="fullscreen-btn" type="button" aria-label="Enter fullscreen"></button>
+          <button id="menu-toggle-btn" type="button" class="canvas-float-btn" aria-label="Open menu" aria-expanded="false" aria-controls="game-menu">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+              <path d="M4 7h16v2H4V7zm0 5h16v2H4v-2zm0 5h16v2H4v-2z" />
+            </svg>
+          </button>
+          <button id="fullscreen-btn" type="button" class="canvas-float-btn canvas-float-btn-right" aria-label="Enter fullscreen"></button>
         </div>
       </div>
-
-      <section class="controls">
-        <button id="jump-btn" type="button">Jump</button>
-        <button id="slide-btn" type="button">Slide</button>
-        <button id="restart-btn" type="button" disabled>Restart</button>
-        <button id="restart-stage-zero-btn" type="button">Restart from Stage 0</button>
-        <button id="reset-everything-btn" type="button">Reset Everything</button>
-        <button id="revive-btn" type="button" disabled>Revive (50)</button>
-        <button id="start-btn" type="button">Start Run</button>
-        <button id="endless-btn" type="button" hidden>Endless Mode</button>
-        <button id="music-toggle-btn" type="button">Music: On</button>
-      </section>
-
-      <section class="shop">
-        <h2>Upgrades</h2>
-        <div class="shop-actions">
-          <button id="upgrade-jump-btn" type="button">Upgrade Jump (120)</button>
-          <button id="upgrade-magnet-btn" type="button">Upgrade Coin Magnet (120)</button>
-        </div>
-      </section>
-
-      <p class="instructions">Controls: Space=Jump, ArrowDown=Slide, tap upper canvas=jump, lower canvas=slide, R=Restart.</p>
     </main>
+
+    <div id="menu-backdrop" class="menu-backdrop" hidden></div>
+    <aside id="game-menu" class="game-menu" aria-hidden="true" aria-label="Game menu">
+      <div class="game-menu-orient">
+        <header class="game-menu-header">
+          <h2 class="game-menu-title">Menu</h2>
+          <button id="menu-close-btn" type="button" class="menu-close-btn" aria-label="Close menu">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+              <path d="M18.3 5.71 12 12l6.3 6.29-1.41 1.42L10.59 13.4 4.29 19.71 2.88 18.3 9.17 12 2.88 5.71 4.29 4.3 10.59 10.6l6.29-6.3z" />
+            </svg>
+          </button>
+        </header>
+
+        <div class="game-menu-scroll">
+          <nav class="game-menu-nav">
+        <button id="endless-btn" type="button" class="menu-item menu-item-endless" hidden>
+          <svg class="menu-item-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M18.178 8c5.096 0 5.096 8 0 8M5.822 8c-5.096 0-5.096 8 0 8" />
+          </svg>
+          <span class="menu-item-label">Endless mode</span>
+        </button>
+        <button id="campaign-btn" type="button" class="menu-item menu-item-campaign" hidden>
+          <svg class="menu-item-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+            <path d="M14 6l-3.75 5 2.75 3.5-1.6 1.2L7 11l3-4h4zm-4 12H5v-2h5v2zm7 0h-5v-2h5v2zM5 8V6h14v2H5z" />
+          </svg>
+          <span class="menu-item-label">Campaign mode</span>
+          <span id="campaign-stage-meta" class="menu-item-meta">Stage 1</span>
+        </button>
+        <button id="restart-btn" type="button" class="menu-item" disabled>
+          <svg class="menu-item-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+            <path d="M12 6V3L8 7l4 4V8c2.76 0 5 2.24 5 5 0 1.01-.3 1.95-.82 2.73l1.46 1.46A6.934 6.934 0 0 0 19 13c0-3.87-3.13-7-7-7zm-5 5c0-1.01.3-1.95.82-2.73L6.36 6.81A6.934 6.934 0 0 0 5 13c0 3.87 3.13 7 7 7v3l4-4-4-4v3c-2.76 0-5-2.24-5-5z" />
+          </svg>
+          <span id="restart-label" class="menu-item-label">Restart</span>
+        </button>
+        <button id="revive-btn" type="button" class="menu-item menu-item-accent" disabled>
+          <svg class="menu-item-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+          </svg>
+          <span class="menu-item-label">Revive</span>
+          <span class="menu-item-meta">50 coins</span>
+        </button>
+        <button id="restart-stage-zero-btn" type="button" class="menu-item">
+          <svg class="menu-item-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5z" />
+          </svg>
+          <span class="menu-item-label">Restart from Stage 1</span>
+        </button>
+        <button id="music-toggle-btn" type="button" class="menu-item">
+          <svg class="menu-item-icon menu-icon-music-on" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+            <path d="M3 10v4c0 1.66 2.69 3 6 3s6-1.34 6-3v-4c0 1.66-2.69 3-6 3s-6-1.34-6-3zm6-8-6 2v6.5c0 2.48 3.13 4.5 7 4.5s7-2.02 7-4.5V4l-7-2z" />
+          </svg>
+          <svg class="menu-item-icon menu-icon-music-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true" hidden>
+            <path d="M3.63 3.63a.996.996 0 0 0 0 1.41L7.29 8.7 3 10v4c0 1.66 2.69 3 6 3 .56 0 1.1-.06 1.62-.17l2.03 2.03c-.79.21-1.63.34-2.5.34-3.87 0-7-2.02-7-4.5V4l1.63-.65 2.52 2.52V4l7 2v3.29l2 2V4l-7-2-1.37.55 1.41 1.41L3.63 3.63zM16.5 12c0 .83-.67 1.5-1.5 1.5v2.21c2.01-.49 3.5-1.88 3.5-3.71v-1.1l-2 2v1.1zm-2-9.21v3.29l6.06 6.06 1.41-1.41L14.91 2.79z" />
+          </svg>
+          <span id="music-toggle-label" class="menu-item-label">Music on</span>
+        </button>
+        <button id="reset-everything-btn" type="button" class="menu-item menu-item-danger">
+          <svg class="menu-item-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+          </svg>
+          <span class="menu-item-label">Reset all progress</span>
+        </button>
+      </nav>
+
+      <section class="game-menu-shop">
+        <h3 class="game-menu-section-title">Upgrades</h3>
+        <button id="upgrade-jump-btn" type="button" class="menu-item">
+          <svg class="menu-item-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+            <path d="M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6 1.41 1.41z" />
+          </svg>
+          <span class="menu-item-label">Jump height</span>
+          <span id="upgrade-jump-meta" class="menu-item-meta">120</span>
+        </button>
+        <button id="upgrade-magnet-btn" type="button" class="menu-item">
+          <svg class="menu-item-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+            <path d="M15 2h-2v2h-2V2H9v2H7V2H5v4H3v10c0 2.21 1.79 4 4 4h10c2.21 0 4-1.79 4-4V6h-2V2h-2zM5 16V8h14v8c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2z" />
+          </svg>
+          <span class="menu-item-label">Coin magnet</span>
+          <span id="upgrade-magnet-meta" class="menu-item-meta">120</span>
+        </button>
+      </section>
+
+          <p class="game-menu-hint">Tap top of game to jump, bottom to slide · Space / ↓ on keyboard</p>
+        </div>
+      </div>
+    </aside>
 
     <aside id="install-banner" class="install-banner hidden" aria-live="polite">
       <p id="install-banner-text">Install Runner Rush on your home screen.</p>
@@ -86,6 +155,6 @@
 
     <audio id="bg-music" src="./assets/music/bg-loop.wav?v=ecaed7e" loop preload="auto"></audio>
     <script src="./pwa.js?v=ecaed7e"></script>
-    <script src="./game.js?v=ecaed7e"></script>
+    <script src="./game.js?v=mobile-no-fs-btn"></script>
   </body>
 </html>

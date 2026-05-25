@@ -8,17 +8,24 @@ const bankCoinsEl = document.getElementById("bank-coins");
 const levelEl = document.getElementById("level");
 const missionEl = document.getElementById("mission");
 
-const startBtn = document.getElementById("start-btn");
 const endlessBtn = document.getElementById("endless-btn");
-const jumpBtn = document.getElementById("jump-btn");
-const slideBtn = document.getElementById("slide-btn");
+const campaignBtn = document.getElementById("campaign-btn");
+const campaignStageMeta = document.getElementById("campaign-stage-meta");
 const restartBtn = document.getElementById("restart-btn");
+const restartLabel = document.getElementById("restart-label");
 const restartStageZeroBtn = document.getElementById("restart-stage-zero-btn");
 const resetEverythingBtn = document.getElementById("reset-everything-btn");
 const reviveBtn = document.getElementById("revive-btn");
 const upgradeJumpBtn = document.getElementById("upgrade-jump-btn");
 const upgradeMagnetBtn = document.getElementById("upgrade-magnet-btn");
+const upgradeJumpMeta = document.getElementById("upgrade-jump-meta");
+const upgradeMagnetMeta = document.getElementById("upgrade-magnet-meta");
 const musicToggleBtn = document.getElementById("music-toggle-btn");
+const musicToggleLabel = document.getElementById("music-toggle-label");
+const menuToggleBtn = document.getElementById("menu-toggle-btn");
+const menuCloseBtn = document.getElementById("menu-close-btn");
+const gameMenu = document.getElementById("game-menu");
+const menuBackdrop = document.getElementById("menu-backdrop");
 const fullscreenBtn = document.getElementById("fullscreen-btn");
 const gameShell = document.querySelector(".game-shell");
 const canvasWrap = document.querySelector(".canvas-wrap");
@@ -55,6 +62,16 @@ const STAGES = [
   { name: "Ash Storm", targetScore: 1000, startSpeed: 6.9, accel: 0.0018, spawn: 30, boss: false, biome: "ash" },
   { name: "Scorched Void", targetScore: 1080, startSpeed: 7.1, accel: 0.00185, spawn: 28, boss: false, biome: "ash" },
   { name: "Final Boss: Inferno Lord", targetScore: 1180, startSpeed: 7.3, accel: 0.00195, spawn: 26, boss: true, biome: "ash" },
+  { name: "Cloud Peaks", targetScore: 1250, startSpeed: 7.4, accel: 0.002, spawn: 25, boss: false, biome: "sky", flying: true },
+  { name: "Gust Valley", targetScore: 1320, startSpeed: 7.5, accel: 0.00205, spawn: 24, boss: false, biome: "sky", flying: true },
+  { name: "Rain Squall", targetScore: 1400, startSpeed: 7.6, accel: 0.0021, spawn: 23, boss: false, biome: "storm", flying: true },
+  { name: "Lightning Fields", targetScore: 1480, startSpeed: 7.7, accel: 0.00215, spawn: 22, boss: false, biome: "storm", flying: true },
+  { name: "Boss: Storm Hawk", targetScore: 1570, startSpeed: 7.8, accel: 0.0022, spawn: 21, boss: true, biome: "storm", flying: true },
+  { name: "Aurora Drift", targetScore: 1660, startSpeed: 7.9, accel: 0.00225, spawn: 20, boss: false, biome: "aurora", flying: true },
+  { name: "Moonlit Skyway", targetScore: 1760, startSpeed: 8.0, accel: 0.0023, spawn: 19, boss: false, biome: "aurora", flying: true },
+  { name: "Crystal Winds", targetScore: 1860, startSpeed: 8.1, accel: 0.00235, spawn: 18, boss: false, biome: "sky", flying: true },
+  { name: "Void Horizon", targetScore: 1960, startSpeed: 8.2, accel: 0.0024, spawn: 17, boss: false, biome: "void", flying: true },
+  { name: "Final Boss: Sky Serpent", targetScore: 2100, startSpeed: 8.3, accel: 0.0025, spawn: 16, boss: true, biome: "void", flying: true },
 ];
 
 const ENDLESS_CONFIG = {
@@ -64,7 +81,8 @@ const ENDLESS_CONFIG = {
   accel: 0.0021,
   spawn: 24,
   boss: true,
-  biome: "storm",
+  biome: "aurora",
+  flying: true,
   endless: true,
 };
 
@@ -125,11 +143,35 @@ const BIOME_PALETTES = {
     line: "#57534e",
     clouds: "rgba(120, 113, 108, 0.55)",
   },
+  sky: {
+    sky: ["#38bdf8", "#e0f2fe"],
+    ground: "#86efac",
+    hills: "#4ade80",
+    dunes: "rgba(255,255,255,0.45)",
+    line: "#16a34a",
+    clouds: "rgba(255,255,255,0.92)",
+  },
+  aurora: {
+    sky: ["#1e1b4b", "#312e81"],
+    ground: "#334155",
+    hills: "#475569",
+    dunes: "rgba(52, 211, 153, 0.22)",
+    line: "#64748b",
+    clouds: "rgba(167, 243, 208, 0.35)",
+  },
+  void: {
+    sky: ["#020617", "#312e81"],
+    ground: "#1e1b4b",
+    hills: "#3730a3",
+    dunes: "rgba(129, 140, 248, 0.28)",
+    line: "#4338ca",
+    clouds: "rgba(196, 181, 253, 0.25)",
+  },
 };
 
 /**
  * Post-game preview — flip on for local testing, off before release.
- * URL shortcuts: ?postgame=1 (World 2), ?postgame=20 (final stage), ?postgame=endless
+ * URL: ?postgame=N (stage 1–30), ?postgame=final, ?postgame=world2, ?postgame=endless
  */
 const GAME_CONFIG = {
   unlockPostGame: false,
@@ -162,6 +204,33 @@ save.endlessBest = Math.max(0, save.endlessBest || 0);
 if (save.unlockedStage === 10 && STAGES.length > 10) {
   save.unlockedStage = 11;
 }
+if (STAGES.length > 20 && save.endlessUnlocked && save.unlockedStage >= 20) {
+  save.unlockedStage = Math.max(save.unlockedStage, 21);
+  if (save.currentStage === 20) {
+    save.currentStage = 21;
+    localStorage.setItem(saveKey, JSON.stringify(save));
+  }
+}
+
+function resolvePostgameStage(postgameParam) {
+  if (postgameParam === "endless") {
+    return null;
+  }
+  if (postgameParam === "final") {
+    return STAGES.length;
+  }
+  if (postgameParam === "world2") {
+    return 11;
+  }
+  if (postgameParam === null || postgameParam === "") {
+    return null;
+  }
+  const parsed = Number.parseInt(postgameParam, 10);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+  return Math.max(1, Math.min(STAGES.length, parsed));
+}
 
 function applyGameConfig() {
   const params = new URLSearchParams(window.location.search);
@@ -171,29 +240,37 @@ function applyGameConfig() {
     return;
   }
 
+  let persistPostgameStage = false;
+
   save.unlockedStage = STAGES.length;
 
   if (postgameParam === "endless") {
     save.endlessUnlocked = true;
     endlessMode = true;
-  } else if (postgameParam === "20" || postgameParam === "final") {
-    save.currentStage = STAGES.length;
-    save.endlessUnlocked = true;
-  } else if (postgameParam === "1" || postgameParam === "11" || postgameParam === "world2") {
-    save.currentStage = 11;
-    save.endlessUnlocked = true;
   } else {
-    save.currentStage = Math.max(1, Math.min(STAGES.length, GAME_CONFIG.startStage || STAGES.length));
-    if (GAME_CONFIG.unlockEndless) {
+    const stage = resolvePostgameStage(postgameParam);
+    if (stage !== null) {
+      save.currentStage = stage;
+      save.unlockedStage = Math.max(save.unlockedStage, stage);
       save.endlessUnlocked = true;
-    }
-    if (GAME_CONFIG.startInEndlessMode) {
-      endlessMode = true;
+      persistPostgameStage = true;
+    } else {
+      save.currentStage = Math.max(1, Math.min(STAGES.length, GAME_CONFIG.startStage || STAGES.length));
+      if (GAME_CONFIG.unlockEndless) {
+        save.endlessUnlocked = true;
+      }
+      if (GAME_CONFIG.startInEndlessMode) {
+        endlessMode = true;
+      }
     }
   }
 
   if (GAME_CONFIG.demoBankCoins > 0) {
     save.bankCoins = Math.max(save.bankCoins, GAME_CONFIG.demoBankCoins);
+  }
+
+  if (persistPostgameStage) {
+    localStorage.setItem(saveKey, JSON.stringify(save));
   }
 }
 
@@ -236,7 +313,47 @@ function updateMusicButton() {
   if (!musicToggleBtn) {
     return;
   }
-  musicToggleBtn.textContent = musicEnabled ? "Music: On" : "Music: Off";
+  musicToggleBtn.classList.toggle("is-muted", !musicEnabled);
+  if (musicToggleLabel) {
+    musicToggleLabel.textContent = musicEnabled ? "Music on" : "Music off";
+  }
+  musicToggleBtn.setAttribute("aria-label", musicEnabled ? "Turn music off" : "Turn music on");
+}
+
+function openGameMenu() {
+  if (!gameMenu || !menuBackdrop) {
+    return;
+  }
+  gameMenu.classList.add("open");
+  gameMenu.setAttribute("aria-hidden", "false");
+  menuBackdrop.hidden = false;
+  menuToggleBtn?.setAttribute("aria-expanded", "true");
+}
+
+function closeGameMenu() {
+  if (!gameMenu || !menuBackdrop) {
+    return;
+  }
+  gameMenu.classList.remove("open");
+  gameMenu.setAttribute("aria-hidden", "true");
+  menuBackdrop.hidden = true;
+  menuToggleBtn?.setAttribute("aria-expanded", "false");
+}
+
+function toggleGameMenu() {
+  if (gameMenu?.classList.contains("open")) {
+    closeGameMenu();
+  } else {
+    openGameMenu();
+  }
+}
+
+function updateMenuAlert() {
+  if (!menuToggleBtn) {
+    return;
+  }
+  const reviveReady = state === "gameover" && !reviveUsed && save.bankCoins >= 50;
+  menuToggleBtn.classList.toggle("has-alert", reviveReady);
 }
 
 function isSmallScreen() {
@@ -250,7 +367,7 @@ function useLandscapeCanvasLayout() {
 }
 
 function usePortraitCanvasHud() {
-  return isPortrait() && window.matchMedia("(max-width: 900px)").matches;
+  return isPortrait();
 }
 
 function useCanvasHudLayout() {
@@ -270,6 +387,7 @@ function isNativeFullscreen() {
 }
 
 let pseudoFullscreen = false;
+let userDismissedMobileFullscreen = false;
 
 function isFullscreenActive() {
   return isNativeFullscreen() || pseudoFullscreen;
@@ -299,6 +417,11 @@ function updateFullscreenButton() {
   if (!fullscreenBtn) {
     return;
   }
+  if (isSmallScreen()) {
+    fullscreenBtn.hidden = true;
+    return;
+  }
+  fullscreenBtn.hidden = false;
   const active = isFullscreenActive();
   fullscreenBtn.innerHTML = active ? FULLSCREEN_EXIT_ICON : FULLSCREEN_ENTER_ICON;
   fullscreenBtn.setAttribute("aria-label", active ? "Exit fullscreen" : "Enter fullscreen");
@@ -312,6 +435,10 @@ function applyForceLandscape() {
   canvasWrap?.classList.add("force-landscape");
   document.documentElement.classList.add("force-landscape-active");
   document.body.classList.add("force-landscape-active");
+  requestAnimationFrame(() => {
+    layoutCanvasStage();
+    requestAnimationFrame(layoutCanvasStage);
+  });
 }
 
 function clearForceLandscape() {
@@ -463,68 +590,118 @@ function exitPseudoFullscreen() {
   onExitFullscreenMode();
 }
 
-async function toggleFullscreen() {
-  if (isFullscreenActive()) {
-    if (isNativeFullscreen()) {
-      await exitFullscreen();
-    }
-    if (pseudoFullscreen) {
-      exitPseudoFullscreen();
-    }
-  } else {
+async function tryAutoMobileFullscreen() {
+  if (!isSmallScreen() || userDismissedMobileFullscreen) {
+    return;
+  }
+
+  if (!isFullscreenActive()) {
     await enterFullscreen();
+  }
+
+  if (isFullscreenActive()) {
+    await ensureLandscape();
+    layoutCanvasStage();
   }
 }
 
-function layoutCanvasStage() {
-  if (!canvasStage || !canvasWrap) {
+function scheduleAutoMobileFullscreen() {
+  if (!isSmallScreen() || userDismissedMobileFullscreen) {
     return;
   }
-  const isFs = gameShell?.classList.contains("is-fullscreen");
-  const forceLandscape = canvasWrap?.classList.contains("force-landscape");
-  const portraitFs =
-    isFs && isPortrait() && !forceLandscape && gameShell?.classList.contains("canvas-only-fs");
-  const useLayout = isFs || useCanvasHudLayout();
-  if (!useLayout) {
-    canvasStage.style.width = "";
-    canvasStage.style.height = "";
+  tryAutoMobileFullscreen();
+  requestAnimationFrame(tryAutoMobileFullscreen);
+  setTimeout(tryAutoMobileFullscreen, 300);
+}
+
+function registerMobileFullscreenFallback() {
+  const retry = () => {
+    tryAutoMobileFullscreen();
+  };
+  document.addEventListener("pointerdown", retry, { once: true, passive: true });
+  document.addEventListener("touchstart", retry, { once: true, passive: true });
+  document.addEventListener("keydown", retry, { once: true });
+}
+
+function layoutCanvasStage() {
+  if (!canvasStage || !canvasWrap || !gameShell) {
+    return;
+  }
+
+  const isFs = gameShell.classList.contains("is-fullscreen");
+  const forceLandscape = canvasWrap.classList.contains("force-landscape");
+
+  if (!isFs && !forceLandscape) {
+    let width = Math.floor(window.innerWidth * 0.6);
+    width = Math.min(Math.max(width, 280), 960);
+    let height = Math.floor(width / GAME_ASPECT);
+
+    const hudReserve = (scorePanel?.offsetHeight || 0) + 48;
+    const maxHeight = Math.floor(window.innerHeight - hudReserve);
+    if (height > maxHeight && maxHeight >= 90) {
+      height = maxHeight;
+      width = Math.floor(height * GAME_ASPECT);
+    }
+
+    width = Math.max(160, width);
+    height = Math.max(90, height);
+
+    canvasStage.style.width = `${width}px`;
+    canvasStage.style.height = `${height}px`;
+    if (scorePanel) {
+      scorePanel.style.width = usePortraitCanvasHud() ? "" : `${width}px`;
+    }
+    return;
+  }
+
+  if (isFs && forceLandscape) {
+    canvasStage.style.width = "100%";
+    canvasStage.style.height = "100%";
     if (scorePanel) {
       scorePanel.style.width = "";
     }
     return;
   }
-  const availW = canvasWrap.clientWidth;
-  const availH = canvasWrap.clientHeight;
-  if (!availW || !availH) {
-    return;
+
+  const portraitFs =
+    isFs && isPortrait() && !forceLandscape && gameShell.classList.contains("canvas-only-fs");
+  const shellStyle = getComputedStyle(gameShell);
+  const shellPadX =
+    (parseFloat(shellStyle.paddingLeft) || 0) + (parseFloat(shellStyle.paddingRight) || 0);
+  const shellPadY =
+    (parseFloat(shellStyle.paddingTop) || 0) + (parseFloat(shellStyle.paddingBottom) || 0);
+
+  let maxW = Math.max(160, gameShell.clientWidth - shellPadX);
+  let maxH = Math.max(90, gameShell.clientHeight - shellPadY);
+
+  if (portraitFs && scorePanel) {
+    maxH -= (scorePanel.offsetHeight || 48) + 8;
   }
+
   let width;
   let height;
-  if (portraitFs) {
-    // Portrait fullscreen: fit 16:9 canvas in the space below the score bar.
-    width = availW;
+  if (isPortrait() && !forceLandscape) {
+    width = maxW;
     height = width / GAME_ASPECT;
-    if (height > availH) {
-      height = availH;
+    if (height > maxH) {
+      height = maxH;
       width = height * GAME_ASPECT;
     }
   } else {
-    // Landscape / overlay HUD: max height 100%, width auto from aspect ratio.
-    height = availH;
+    height = maxH;
     width = height * GAME_ASPECT;
-    if (width > availW) {
-      width = availW;
+    if (width > maxW) {
+      width = maxW;
       height = width / GAME_ASPECT;
     }
   }
-  const w = Math.floor(width);
-  const h = Math.floor(height);
+
+  const w = Math.max(160, Math.floor(width));
+  const h = Math.max(90, Math.floor(height));
   canvasStage.style.width = `${w}px`;
   canvasStage.style.height = `${h}px`;
-  if (scorePanel && (useCanvasHudLayout() || forceLandscape || isFs)) {
-    scorePanel.style.width = `${w}px`;
-  } else if (scorePanel) {
-    scorePanel.style.width = "";
+  if (scorePanel) {
+    scorePanel.style.width = isLandscape() ? `${w}px` : "";
   }
 }
 
@@ -536,18 +713,40 @@ function handleFullscreenChange() {
   }
 }
 
-function handleOrientationChange() {
-  if (isFullscreenActive() && isSmallScreen()) {
-    ensureLandscape();
+async function toggleFullscreen() {
+  if (isFullscreenActive()) {
+    if (isSmallScreen()) {
+      userDismissedMobileFullscreen = true;
+    }
+    if (isNativeFullscreen()) {
+      await exitFullscreen();
+    }
+    if (pseudoFullscreen) {
+      exitPseudoFullscreen();
+    }
+  } else {
+    if (isSmallScreen()) {
+      userDismissedMobileFullscreen = false;
+    }
+    await enterFullscreen();
   }
-  layoutCanvasStage();
+}
+
+async function handleOrientationChange() {
+  await tryAutoMobileFullscreen();
+  if (!isFullscreenActive()) {
+    layoutCanvasStage();
+  }
 }
 
 layoutCanvasStage();
 requestAnimationFrame(() => {
   layoutCanvasStage();
+  scheduleAutoMobileFullscreen();
   requestAnimationFrame(layoutCanvasStage);
 });
+scheduleAutoMobileFullscreen();
+registerMobileFullscreenFallback();
 
 function applyMusicSettings() {
   if (!bgMusic) {
@@ -636,43 +835,61 @@ function updateHud() {
     levelEl.textContent = `Stage: ${save.currentStage}/${STAGES.length}`;
     missionEl.textContent = `Goal: ${stage.name} (${Math.min(stageProgress, stage.targetScore)}/${stage.targetScore})`;
   }
-  upgradeJumpBtn.textContent = `Upgrade Jump (${jumpUpgradeCost()})`;
-  upgradeMagnetBtn.textContent = `Upgrade Coin Magnet (${magnetUpgradeCost()})`;
+  if (upgradeJumpMeta) {
+    upgradeJumpMeta.textContent = String(jumpUpgradeCost());
+  }
+  if (upgradeMagnetMeta) {
+    upgradeMagnetMeta.textContent = String(magnetUpgradeCost());
+  }
   if (endlessBtn) {
-    endlessBtn.hidden = !save.endlessUnlocked;
+    endlessBtn.hidden = !save.endlessUnlocked || endlessMode;
     endlessBtn.disabled = state === "playing";
+  }
+  if (campaignBtn) {
+    campaignBtn.hidden = !endlessMode;
+    campaignBtn.disabled = state === "playing";
+  }
+  if (campaignStageMeta) {
+    campaignStageMeta.textContent = `Stage ${save.currentStage}`;
+  }
+  updateMenuAlert();
+}
+
+function updateRestartLabel(text) {
+  if (restartLabel) {
+    restartLabel.textContent = text;
   }
 }
 
 function setState(nextState) {
   state = nextState;
   const playing = nextState === "playing";
-  startBtn.disabled = playing;
-  jumpBtn.disabled = !playing;
-  slideBtn.disabled = !playing;
   restartBtn.disabled = playing;
   restartStageZeroBtn.disabled = playing;
   reviveBtn.disabled = !(nextState === "gameover" && !reviveUsed && save.bankCoins >= 50);
 
   if (nextState === "gameover") {
-    restartBtn.textContent = endlessMode ? "Retry Endless" : "Retry Stage";
+    updateRestartLabel(endlessMode ? "Retry endless" : "Retry stage");
   } else if (nextState === "stageclear") {
     if (save.currentStage < STAGES.length) {
-      restartBtn.textContent = "Next Stage";
+      updateRestartLabel("Next stage");
     } else if (save.endlessUnlocked && !endlessMode) {
-      restartBtn.textContent = "Endless Mode";
+      updateRestartLabel("Endless mode");
     } else {
-      restartBtn.textContent = "Play Again";
+      updateRestartLabel("Play again");
     }
   } else {
-    restartBtn.textContent = "Restart";
+    updateRestartLabel("Restart");
   }
 
   if (playing) {
+    closeGameMenu();
     ensureMusicPlayback();
   } else if (bgMusic) {
     bgMusic.pause();
   }
+
+  updateMenuAlert();
 }
 
 function emitDust(x, y, burst) {
@@ -709,6 +926,19 @@ function startEndlessRun() {
   }
   endlessMode = true;
   startRun();
+}
+
+function exitEndlessMode() {
+  if (!endlessMode) {
+    return;
+  }
+  endlessMode = false;
+  closeGameMenu();
+  if (state === "playing") {
+    return;
+  }
+  setState("menu");
+  updateHud();
 }
 
 function startRun() {
@@ -859,19 +1089,96 @@ function tryBuyMagnetUpgrade() {
   updateHud();
 }
 
+function spawnFlyingObstacle(stageIndex) {
+  const roll = Math.random();
+  let type;
+  let w;
+  let h;
+  let baseY;
+
+  if (stageIndex >= 29 && roll < 0.22) {
+    type = "fly_serpent";
+    w = 50;
+    h = 24;
+    baseY = groundY - 88;
+  } else if (roll < 0.34) {
+    type = "fly_bat";
+    w = 36;
+    h = 26;
+    baseY = groundY - 66;
+  } else if (roll < 0.64) {
+    type = "fly_hawk";
+    w = 42;
+    h = 30;
+    baseY = groundY - 112;
+  } else if (roll < 0.84) {
+    type = "fly_drone";
+    w = 34;
+    h = 30;
+    baseY = groundY - 54;
+  } else {
+    type = "fly_serpent";
+    w = 48;
+    h = 22;
+    baseY = groundY - 82;
+  }
+
+  obstacles.push({
+    x: canvas.width + 20,
+    y: baseY,
+    baseY,
+    w,
+    h,
+    type,
+    flying: true,
+    phase: Math.random() * Math.PI * 2,
+  });
+}
+
+function flyingSpawnChance(stageIndex) {
+  if (stageIndex < 21) {
+    return 0;
+  }
+  if (endlessMode) {
+    return 0.44;
+  }
+  return Math.min(0.62, 0.32 + (stageIndex - 21) * 0.035);
+}
+
 function spawnObstacle() {
   const stage = currentStageConfig();
   const roll = Math.random();
   const stageIndex = endlessMode ? STAGES.length + 1 : save.currentStage;
 
   if (stage.boss && roll < (endlessMode ? 0.28 : 0.2)) {
-    obstacles.push({
-      x: canvas.width + 20,
-      y: groundY - 80,
-      w: 44,
-      h: 80,
-      type: "boss",
-    });
+    if (stage.flying) {
+      obstacles.push({
+        x: canvas.width + 20,
+        y: groundY - 92,
+        baseY: groundY - 92,
+        w: stageIndex >= 30 ? 58 : 52,
+        h: stageIndex >= 30 ? 36 : 40,
+        type: "fly_boss",
+        flying: true,
+        phase: Math.random() * Math.PI * 2,
+      });
+    } else {
+      obstacles.push({
+        x: canvas.width + 20,
+        y: groundY - 80,
+        w: 44,
+        h: 80,
+        type: "boss",
+      });
+    }
+    return;
+  }
+
+  if (stageIndex >= 21 && roll < flyingSpawnChance(stageIndex)) {
+    spawnFlyingObstacle(stageIndex);
+    if (stageIndex >= 24 && Math.random() < 0.24) {
+      obstacles.push({ x: canvas.width + 72, y: groundY - 34, w: 30, h: 34, type: "low" });
+    }
     return;
   }
   if (stageIndex >= 12 && roll < 0.1) {
@@ -1013,6 +1320,10 @@ function update() {
   for (let i = obstacles.length - 1; i >= 0; i -= 1) {
     const obs = obstacles[i];
     obs.x -= currentSpeed;
+    if (obs.flying && obs.baseY !== undefined) {
+      const bob = obs.type === "fly_boss" ? 10 : obs.type === "fly_serpent" ? 8 : 7;
+      obs.y = obs.baseY + Math.sin(frame * 0.07 + obs.phase) * bob;
+    }
     if (obs.x + obs.w < -14) {
       obstacles.splice(i, 1);
       continue;
@@ -1089,6 +1400,24 @@ function drawBackground() {
       const sx = (i * 113 + frame * 0.04) % canvas.width;
       const sy = 24 + (i * 37) % 120;
       ctx.fillRect(sx, sy, i % 3 === 0 ? 2 : 1, i % 3 === 0 ? 2 : 1);
+    }
+  }
+
+  if (currentStageConfig().biome === "aurora" || currentStageConfig().biome === "void") {
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    for (let i = 0; i < 18; i += 1) {
+      const sx = (i * 97 + frame * 0.02) % canvas.width;
+      const sy = 18 + (i * 41) % 100;
+      ctx.fillRect(sx, sy, 2, 2);
+    }
+    if (currentStageConfig().biome === "aurora") {
+      const auroraGrad = ctx.createLinearGradient(0, 40, canvas.width, 160);
+      auroraGrad.addColorStop(0, "rgba(52, 211, 153, 0)");
+      auroraGrad.addColorStop(0.45, "rgba(52, 211, 153, 0.18)");
+      auroraGrad.addColorStop(0.7, "rgba(167, 139, 250, 0.16)");
+      auroraGrad.addColorStop(1, "rgba(52, 211, 153, 0)");
+      ctx.fillStyle = auroraGrad;
+      ctx.fillRect(0, 30, canvas.width, 140);
     }
   }
 
@@ -1182,8 +1511,96 @@ function drawPlayer() {
   ctx.fillRect(player.x + 34, drawY + 14, 4, 1);
 }
 
+function drawFlyingObstacle(obs) {
+  const wingFlap = Math.sin(frame * 0.35 + obs.phase) * 6;
+  const cx = obs.x + obs.w * 0.5;
+  const cy = obs.y + obs.h * 0.5;
+
+  ctx.fillStyle = "rgba(15, 23, 42, 0.16)";
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + obs.h * 0.45, obs.w * 0.42, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (obs.type === "fly_drone") {
+    ctx.fillStyle = "#475569";
+    ctx.fillRect(obs.x + 4, obs.y + 8, obs.w - 8, obs.h - 14);
+    ctx.fillStyle = "#94a3b8";
+    ctx.fillRect(obs.x + obs.w * 0.5 - 3, obs.y + 2, 6, 6);
+    ctx.strokeStyle = "#cbd5e1";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(obs.x + 6, obs.y + 10);
+    ctx.lineTo(obs.x - 4, obs.y + 4 + wingFlap * 0.2);
+    ctx.moveTo(obs.x + obs.w - 6, obs.y + 10);
+    ctx.lineTo(obs.x + obs.w + 4, obs.y + 4 - wingFlap * 0.2);
+    ctx.stroke();
+    ctx.fillStyle = "#ef4444";
+    ctx.fillRect(obs.x + 8, obs.y + obs.h - 8, 4, 4);
+    ctx.fillRect(obs.x + obs.w - 12, obs.y + obs.h - 8, 4, 4);
+    return;
+  }
+
+  if (obs.type === "fly_serpent" || (obs.type === "fly_boss" && save.currentStage >= 30)) {
+    ctx.strokeStyle = obs.type === "fly_boss" ? "#818cf8" : "#6366f1";
+    ctx.lineWidth = obs.type === "fly_boss" ? 8 : 6;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(obs.x, cy);
+    for (let i = 0; i <= 4; i += 1) {
+      const px = obs.x + (obs.w / 4) * i;
+      const wave = Math.sin(frame * 0.12 + obs.phase + i * 0.9) * (obs.type === "fly_boss" ? 10 : 7);
+      ctx.lineTo(px, cy + wave);
+    }
+    ctx.stroke();
+    ctx.fillStyle = "#c7d2fe";
+    ctx.beginPath();
+    ctx.arc(obs.x + obs.w - 4, cy + Math.sin(frame * 0.12 + obs.phase + 3.6) * 7, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#111827";
+    ctx.fillRect(obs.x + obs.w - 6, cy + Math.sin(frame * 0.12 + obs.phase + 3.6) * 7 - 2, 2, 2);
+    return;
+  }
+
+  const bodyColor = obs.type === "fly_boss" ? "#92400e" : obs.type === "fly_hawk" ? "#78350f" : "#374151";
+  const wingColor = obs.type === "fly_boss" ? "#b45309" : obs.type === "fly_hawk" ? "#a16207" : "#1f2937";
+
+  ctx.fillStyle = bodyColor;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, obs.w * 0.22, obs.h * 0.28, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = wingColor;
+  ctx.beginPath();
+  ctx.moveTo(cx - 4, cy);
+  ctx.quadraticCurveTo(obs.x - 8, cy - 10 - wingFlap, obs.x + 4, cy + 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(cx + 4, cy);
+  ctx.quadraticCurveTo(obs.x + obs.w + 8, cy - 8 + wingFlap, obs.x + obs.w - 4, cy + 2);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#111827";
+  ctx.fillRect(obs.x + obs.w - 10, cy - 2, 3, 3);
+
+  if (obs.type === "fly_boss") {
+    ctx.strokeStyle = "#fcd34d";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(obs.x + obs.w - 6, cy - 1);
+    ctx.lineTo(obs.x + obs.w + 2, cy - 5);
+    ctx.stroke();
+  }
+}
+
 function drawObstacles() {
   obstacles.forEach((obs) => {
+    if (obs.flying) {
+      drawFlyingObstacle(obs);
+      return;
+    }
+
     const isTall = obs.type === "wall" || obs.type === "boss";
     const isBoss = obs.type === "boss";
 
@@ -1276,9 +1693,9 @@ function drawOverlay() {
     ctx.fillText(`Stage ${save.currentStage}/${STAGES.length} unlocked`, canvas.width / 2, canvas.height / 2 - 4);
     if (save.endlessUnlocked) {
       ctx.fillText("Endless Mode unlocked", canvas.width / 2, canvas.height / 2 + 24);
-      ctx.fillText("Press Start Run or Space", canvas.width / 2, canvas.height / 2 + 54);
+      ctx.fillText("Tap to play · Space to start", canvas.width / 2, canvas.height / 2 + 54);
     } else {
-      ctx.fillText("Press Start Run or Space", canvas.width / 2, canvas.height / 2 + 24);
+      ctx.fillText("Tap to play · Space to start", canvas.width / 2, canvas.height / 2 + 24);
     }
   } else if (state === "stageclear") {
     const finishedAllStages = save.currentStage >= STAGES.length;
@@ -1317,6 +1734,11 @@ function loop() {
 }
 
 window.addEventListener("keydown", (event) => {
+  if (event.code === "Escape" && gameMenu?.classList.contains("open")) {
+    event.preventDefault();
+    closeGameMenu();
+    return;
+  }
   if (event.code === "Space" || event.code === "ArrowUp") {
     event.preventDefault();
     if (state === "gameover") {
@@ -1397,22 +1819,42 @@ function preventDoubleTapZoom() {
 
 preventDoubleTapZoom();
 
-startBtn.addEventListener("click", () => {
-  endlessMode = false;
-  startRun();
-});
 if (endlessBtn) {
-  endlessBtn.addEventListener("click", startEndlessRun);
+  endlessBtn.addEventListener("click", () => {
+    closeGameMenu();
+    startEndlessRun();
+  });
 }
-jumpBtn.addEventListener("click", jump);
-slideBtn.addEventListener("click", slide);
-restartBtn.addEventListener("click", restart);
-restartStageZeroBtn.addEventListener("click", restartFromStageZero);
-resetEverythingBtn.addEventListener("click", resetEverything);
-reviveBtn.addEventListener("click", revive);
+campaignBtn?.addEventListener("click", exitEndlessMode);
+restartBtn.addEventListener("click", () => {
+  closeGameMenu();
+  restart();
+});
+restartStageZeroBtn.addEventListener("click", () => {
+  closeGameMenu();
+  restartFromStageZero();
+});
+resetEverythingBtn.addEventListener("click", () => {
+  closeGameMenu();
+  resetEverything();
+});
+reviveBtn.addEventListener("click", () => {
+  closeGameMenu();
+  revive();
+});
 upgradeJumpBtn.addEventListener("click", tryBuyJumpUpgrade);
 upgradeMagnetBtn.addEventListener("click", tryBuyMagnetUpgrade);
 musicToggleBtn.addEventListener("click", toggleMusic);
+menuToggleBtn?.addEventListener("click", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  toggleGameMenu();
+});
+menuToggleBtn?.addEventListener("pointerdown", (event) => {
+  event.stopPropagation();
+});
+menuCloseBtn?.addEventListener("click", closeGameMenu);
+menuBackdrop?.addEventListener("click", closeGameMenu);
 if (fullscreenBtn) {
   fullscreenBtn.addEventListener("click", (event) => {
     event.preventDefault();
@@ -1427,12 +1869,17 @@ window.addEventListener("resize", handleOrientationChange);
 window.visualViewport?.addEventListener("resize", handleOrientationChange);
 window.visualViewport?.addEventListener("scroll", handleOrientationChange);
 
-if (canvasWrap && typeof ResizeObserver !== "undefined") {
+if (gameShell && typeof ResizeObserver !== "undefined") {
   new ResizeObserver(() => {
-    if (gameShell?.classList.contains("is-fullscreen") || useCanvasHudLayout()) {
-      layoutCanvasStage();
-    }
-  }).observe(canvasWrap);
+    layoutCanvasStage();
+  }).observe(gameShell);
+  if (canvasWrap) {
+    new ResizeObserver(() => {
+      if (gameShell.classList.contains("is-fullscreen")) {
+        layoutCanvasStage();
+      }
+    }).observe(canvasWrap);
+  }
 }
 
 document.addEventListener("visibilitychange", () => {
