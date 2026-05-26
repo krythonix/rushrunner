@@ -55,6 +55,8 @@ const baseJumpForce = -14.8;
 const STAGES_PER_WORLD = 8;
 const CAMPAIGN_MAX_SPEED = 8.0;
 const ENDLESS_MAX_SPEED = 9.4;
+// Minimum run speed so a full jump clears common wall hitboxes (≈62px + player width).
+const MIN_RUN_START_SPEED = 4.0;
 const WORLD2_START = STAGES_PER_WORLD + 1;
 const WORLD3_START = STAGES_PER_WORLD * 2 + 1;
 const WORLD4_START = STAGES_PER_WORLD * 3 + 1;
@@ -76,10 +78,10 @@ const WORLD_AUDIO_PROFILES = [
 ];
 
 const STAGES = [
-  { name: "Sunny Trail", targetScore: 90, startSpeed: 3.0, accel: 0.00065, spawn: 80, boss: false, biome: "grass" },
-  { name: "Rock Dust", targetScore: 150, startSpeed: 3.6, accel: 0.00085, spawn: 72, boss: false, biome: "desert" },
-  { name: "Windy Ridge", targetScore: 185, startSpeed: 3.9, accel: 0.00095, spawn: 68, boss: false, biome: "dusk" },
-  { name: "Boss: Thorn Lord", targetScore: 230, startSpeed: 4.0, accel: 0.00105, spawn: 64, boss: true, biome: "grass" },
+  { name: "Sunny Trail", targetScore: 90, startSpeed: 4.0, accel: 0.00065, spawn: 80, boss: false, biome: "grass" },
+  { name: "Rock Dust", targetScore: 150, startSpeed: 4.2, accel: 0.00085, spawn: 72, boss: false, biome: "desert" },
+  { name: "Windy Ridge", targetScore: 185, startSpeed: 4.5, accel: 0.00095, spawn: 68, boss: false, biome: "dusk" },
+  { name: "Boss: Thorn Lord", targetScore: 230, startSpeed: 4.6, accel: 0.00105, spawn: 64, boss: true, biome: "grass" },
   { name: "Wild Barrens", targetScore: 320, startSpeed: 4.6, accel: 0.0012, spawn: 56, boss: false, biome: "storm" },
   { name: "Storm Flats", targetScore: 365, startSpeed: 4.9, accel: 0.00125, spawn: 53, boss: false, biome: "storm" },
   { name: "Night Canyons", targetScore: 420, startSpeed: 5.1, accel: 0.0013, spawn: 50, boss: false, biome: "night" },
@@ -1744,7 +1746,7 @@ function currentStageConfig() {
   const pace = baselineStageForPosition(save.currentStage);
   return {
     ...stage,
-    startSpeed: pace.startSpeed,
+    startSpeed: clampCampaignSpeed(Math.max(MIN_RUN_START_SPEED, stage.startSpeed)),
     accel: pace.accel,
     spawn: pace.spawn,
   };
